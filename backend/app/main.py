@@ -4,12 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.database.database import Base, engine
-from app.routers import auth, test_roles
+import app.models  # Import all models to register on Base.metadata
+from app.routers import auth, test_roles, projects, users
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database tables on startup
+    # Initialize all database tables safely on startup
     Base.metadata.create_all(bind=engine)
     yield
 
@@ -17,7 +18,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="SIH26122 Backend",
     description="Intelligent Data Capture & Schedule-Linking Layer for Infrastructure Project Management API",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -33,6 +34,8 @@ app.add_middleware(
 # Register API Routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(test_roles.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 
 
 @app.get("/api/health", tags=["Health"])

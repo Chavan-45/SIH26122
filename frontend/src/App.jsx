@@ -5,7 +5,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PlannerWorkspace from './pages/PlannerWorkspace';
+import CreateProjectPage from './pages/CreateProjectPage';
 import SupervisorWorkspace from './pages/SupervisorWorkspace';
+import ProjectWorkspace from './pages/ProjectWorkspace';
 import { RefreshCw } from 'lucide-react';
 
 function RootRedirect() {
@@ -45,7 +47,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected Role Workspaces */}
+          {/* Protected Planner Workspaces */}
           <Route
             path="/planner"
             element={
@@ -55,10 +57,30 @@ export default function App() {
             }
           />
           <Route
+            path="/planner/projects/new"
+            element={
+              <ProtectedRoute allowedRoles={['PLANNER']}>
+                <CreateProjectPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected Supervisor Workspaces */}
+          <Route
             path="/supervisor"
             element={
               <ProtectedRoute allowedRoles={['SUPERVISOR']}>
                 <SupervisorWorkspace />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Shared Dynamic Project Workspace Context */}
+          <Route
+            path="/projects/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectWorkspace />
               </ProtectedRoute>
             }
           />

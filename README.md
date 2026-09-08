@@ -2,15 +2,18 @@
 
 ## About the Project
 
-**SIH26122** is an infrastructure project execution platform designed to bridge the gap between high-level project scheduling (L5/L6 schedules from Primavera / MS Project) and ground-level field progress reporting across civil, piping, electrical, mechanical, and instrumentation disciplines. The platform facilitates automated progress tracking, natural language updates, schedule alignment, and execution dashboards.
+**SIH26122** is an infrastructure project execution platform designed to bridge high-level baseline project scheduling (e.g., Primavera / MS Project) with ground-level field progress updates across engineering disciplines (Civil, Piping, Electrical, Mechanical, Instrumentation, HSE).
 
 ---
 
-## Current Status: Phase 1 (Full-Stack Foundation)
+## Current Status: Phase 3 (Project Creation, Project Access & Project Workspaces)
 
-This repository contains the clean, production-ready foundation for the project:
-- **Backend**: FastAPI Python application providing modular REST endpoints with CORS and health monitoring.
-- **Frontend**: React application built with Vite, featuring centralized environment-based API configuration and connection status monitoring.
+The platform currently includes:
+- **Authentication & Roles**: Secure bcrypt password hashing, JWT Bearer tokens, and strict role segregation between **Lead Planners** and **Field Supervisors**.
+- **Project Baseline Management**: Planners can create, view, and update infrastructure projects with codes, planned start/finish dates, and lifecycle statuses.
+- **Team Allocation & Disciplines**: Planners can assign registered Supervisors to specific projects with discipline mappings (`CIVIL`, `PIPING`, `ELECTRICAL`, `MECHANICAL`, `INSTRUMENTATION`, `HSE`, `OTHER`).
+- **Access Control & Scoping**: Supervisors only see and access projects to which they are assigned. Every project resource is strictly scoped and verified by `project_id`.
+- **UI & Design System**: Approved Oil & Infrastructure Industrial Light Theme.
 
 ---
 
@@ -20,115 +23,108 @@ This repository contains the clean, production-ready foundation for the project:
 SIH26122/
 ├── frontend/
 │   ├── src/
+│   │   ├── components/
+│   │   │   ├── Navbar.jsx              # Authenticated navigation bar
+│   │   │   └── ProtectedRoute.jsx      # Role-based route guard
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx         # Auth state & token persistence
+│   │   ├── pages/
+│   │   │   ├── LoginPage.jsx           # Sign-in page
+│   │   │   ├── RegisterPage.jsx        # Registration with role selector
+│   │   │   ├── PlannerWorkspace.jsx    # Planner portal with "My Projects"
+│   │   │   ├── CreateProjectPage.jsx   # Project creation form
+│   │   │   ├── SupervisorWorkspace.jsx # Supervisor portal with "Assigned Projects"
+│   │   │   └── ProjectWorkspace.jsx    # Shared project context & team management
 │   │   ├── services/
-│   │   │   └── api.js          # Centralized API service client
-│   │   ├── App.jsx             # Main landing & status UI
-│   │   ├── index.css           # Modern, professional UI styling
-│   │   └── main.jsx            # React entry point
-│   ├── public/                 # Static assets
-│   ├── index.html              # HTML shell
-│   ├── vite.config.js          # Vite configuration
-│   ├── package.json            # Frontend dependencies and scripts
-│   ├── .env.example            # Frontend environment template
-│   └── .env                    # Frontend environment configuration
+│   │   │   └── api.js                  # Centralized API service client
+│   │   ├── App.jsx                     # Route definitions
+│   │   ├── index.css                   # Industrial Light Design System
+│   │   └── main.jsx                    # React mounting entry point
+│   ├── package.json
+│   └── vite.config.js
 │
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py         # Python package marker
-│   │   └── main.py             # FastAPI entry point, CORS & health check
-│   ├── requirements.txt        # Python backend dependencies
-│   └── .env.example            # Backend environment template
+│   │   ├── core/
+│   │   │   ├── config.py               # Environment configuration
+│   │   │   ├── dependencies.py         # Auth & RBAC dependencies
+│   │   │   └── security.py             # Bcrypt hashing & JWT utilities
+│   │   ├── database/
+│   │   │   └── database.py             # SQLAlchemy engine & session generator
+│   │   ├── models/
+│   │   │   ├── user.py                 # User ORM model
+│   │   │   ├── project.py              # Project ORM model
+│   │   │   └── project_member.py       # ProjectMember ORM model
+│   │   ├── schemas/
+│   │   │   ├── user.py                 # User Pydantic schemas
+│   │   │   └── project.py              # Project & Member Pydantic schemas
+│   │   ├── services/
+│   │   │   └── project_service.py      # Project access validation helpers
+│   │   ├── routers/
+│   │   │   ├── auth.py                 # Auth endpoints (/api/auth)
+│   │   │   ├── test_roles.py           # Role testing endpoints (/api/test)
+│   │   │   ├── projects.py             # Project CRUD & team endpoints (/api/projects)
+│   │   │   └── users.py                # Supervisor lookup endpoint (/api/users)
+│   │   └── main.py                     # FastAPI application entry point
+│   ├── requirements.txt
+│   └── .env.example
 │
-├── .gitignore                  # Git ignore rules
-└── README.md                   # Project documentation
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## Prerequisites
+## API Endpoints (Phase 3)
 
-Ensure you have the following installed on your machine:
-- **Python**: version `3.10` or higher
-- **Node.js**: version `18.0` or higher
-- **npm**: version `9.0` or higher
+### Authentication & Users
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Public | Register a new user (`PLANNER` / `SUPERVISOR`) |
+| `POST` | `/api/auth/login` | Public | Authenticate credentials and receive JWT |
+| `GET` | `/api/auth/me` | Authenticated | Retrieve current user profile |
+| `GET` | `/api/users/supervisors` | Planner only | Search registered supervisors for assignment |
 
----
-
-## Installation & Setup
-
-### 1. Backend Setup (FastAPI)
-
-1. Open a terminal and navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. (Recommended) Create and activate a Python virtual environment:
-   - **Windows (PowerShell)**:
-     ```powershell
-     python -m venv venv
-     .\venv\Scripts\Activate.ps1
-     ```
-   - **Linux / macOS**:
-     ```bash
-     python3 -m venv venv
-     source venv/bin/activate
-     ```
-
-3. Install the required Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. (Optional) Create a `.env` file from the example:
-   ```bash
-   cp .env.example .env
-   ```
-
-5. Start the FastAPI development server:
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
-
-The backend will start at `http://localhost:8000`.
+### Infrastructure Projects
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/projects` | Planner only | Create a new infrastructure project |
+| `GET` | `/api/projects` | Authenticated | List created (Planner) or assigned (Supervisor) projects |
+| `GET` | `/api/projects/{id}` | Project members | Get detailed project overview |
+| `PATCH` | `/api/projects/{id}` | Planner owner | Update project baseline metadata |
+| `GET` | `/api/projects/{id}/members` | Project members | List project team and assigned disciplines |
+| `POST` | `/api/projects/{id}/members` | Planner owner | Assign a registered supervisor with discipline |
+| `DELETE` | `/api/projects/{id}/members/{user_id}` | Planner owner | Remove a supervisor from the project |
 
 ---
 
-### 2. Frontend Setup (React + Vite)
+## Frontend Routes
 
-1. Open a new terminal and navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
-2. Install the frontend dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Ensure `.env` exists with the backend API URL:
-   ```text
-   VITE_API_BASE_URL=http://localhost:8000
-   ```
-
-4. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-
-5. To build the frontend for production:
-   ```bash
-   npm run build
-   ```
-
----
-
-## Development URLs
-
-| Service | URL | Description |
+| Route | Protection | Target Page |
 |---|---|---|
-| **Frontend App** | [http://localhost:5173](http://localhost:5173) | React user interface |
-| **Backend API** | [http://localhost:8000](http://localhost:8000) | FastAPI server root |
-| **Health Endpoint** | [http://localhost:8000/api/health](http://localhost:8000/api/health) | Backend health verification |
-| **Interactive API Docs (Swagger)** | [http://localhost:8000/docs](http://localhost:8000/docs) | Auto-generated FastAPI documentation |
-| **ReDoc API Docs** | [http://localhost:8000/redoc](http://localhost:8000/redoc) | Alternative API documentation |
+| `/login` | Public | Sign In |
+| `/register` | Public | Registration |
+| `/planner` | Protected (`PLANNER`) | Planner Portal ("My Projects") |
+| `/planner/projects/new` | Protected (`PLANNER`) | Create Infrastructure Project |
+| `/supervisor` | Protected (`SUPERVISOR`) | Supervisor Portal ("Assigned Projects") |
+| `/projects/:projectId` | Project Members | Shared Project Workspace |
+
+---
+
+## Startup Instructions
+
+### 1. Backend
+```bash
+cd backend
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+- API Root: `http://localhost:8000`
+- Interactive Swagger Docs: `http://localhost:8000/docs`
+
+### 2. Frontend
+```bash
+cd frontend
+npm run dev
+```
+- Frontend App: `http://localhost:5173`
+- Production Build: `npm run build`

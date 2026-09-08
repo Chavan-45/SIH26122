@@ -5,6 +5,16 @@ from app.schemas.user import (
     UserResponse,
     TokenResponse,
 )
+from app.schemas.project import (
+    ProjectStatus,
+    Discipline,
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+    ProjectMemberAdd,
+    ProjectMemberResponse,
+    SupervisorSummary,
+)
 
 __all__ = [
     "UserRole",
@@ -12,4 +22,12 @@ __all__ = [
     "UserLogin",
     "UserResponse",
     "TokenResponse",
+    "ProjectStatus",
+    "Discipline",
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectResponse",
+    "ProjectMemberAdd",
+    "ProjectMemberResponse",
+    "SupervisorSummary",
 ]
