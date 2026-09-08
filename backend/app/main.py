@@ -1,28 +1,38 @@
-import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-# Load environment variables if .env exists
-load_dotenv()
+from app.core.config import settings
+from app.database.database import Base, engine
+from app.routers import auth, test_roles
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize database tables on startup
+    Base.metadata.create_all(bind=engine)
+    yield
+
 
 app = FastAPI(
     title="SIH26122 Backend",
     description="Intelligent Data Capture & Schedule-Linking Layer for Infrastructure Project Management API",
-    version="0.1.0",
+    version="0.2.0",
+    lifespan=lifespan,
 )
 
 # Configure CORS for frontend communication
-cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
-allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins else ["*"],
+    allow_origins=settings.CORS_ORIGINS if settings.CORS_ORIGINS else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register API Routers
+app.include_router(auth.router, prefix="/api")
+app.include_router(test_roles.router, prefix="/api")
 
 
 @app.get("/api/health", tags=["Health"])
@@ -37,6 +47,4 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
 
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
-    uvicorn.run("app.main:app", host=host, port=port, reload=True)
+    uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=True)
