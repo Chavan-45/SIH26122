@@ -607,6 +607,51 @@ def get_activity_progress_history(
     }
 
 
+def get_project_team(db: Session, project_id: int) -> Dict[str, Any]:
+    """Retrieves structured information about assigned project team members, roles, and disciplines."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        return {"error": f"Project with ID {project_id} not found."}
+
+    memberships = (
+        db.query(ProjectMember, User)
+        .join(User, ProjectMember.user_id == User.id)
+        .filter(ProjectMember.project_id == project_id)
+        .all()
+    )
+
+    supervisor_count = 0
+    members_list = []
+
+    for pm, u in memberships:
+        role_str = u.role.value if hasattr(u.role, "value") else str(u.role)
+        if role_str == "SUPERVISOR":
+            supervisor_count += 1
+        members_list.append({
+            "full_name": u.full_name,
+            "role": role_str,
+            "discipline": pm.discipline or "ALL",
+        })
+
+    planner_user = db.query(User).filter(User.id == project.created_by_id).first()
+    if planner_user:
+        planner_role = planner_user.role.value if hasattr(planner_user.role, "value") else str(planner_user.role)
+        if not any(m["full_name"] == planner_user.full_name for m in members_list):
+            members_list.insert(0, {
+                "full_name": planner_user.full_name,
+                "role": planner_role,
+                "discipline": "PROJECT_WIDE",
+            })
+
+    return {
+        "project_id": project.id,
+        "project_code": project.project_code,
+        "total_members": len(members_list),
+        "supervisor_count": supervisor_count,
+        "members": members_list,
+    }
+
+
 # Dispatcher mapping
 TOOL_DISPATCHER = {
     "get_project_overview": get_project_overview,
@@ -619,7 +664,9 @@ TOOL_DISPATCHER = {
     "get_discipline_progress": get_discipline_progress,
     "get_recent_progress_updates": get_recent_progress_updates,
     "get_activity_progress_history": get_activity_progress_history,
+    "get_project_team": get_project_team,
 }
+
 
 
 def execute_tool(

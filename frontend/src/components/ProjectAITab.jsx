@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   Plus,
   MessageSquare,
@@ -8,6 +9,8 @@ import {
   Send,
   ExternalLink,
   X,
+  Database,
+  Shield,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -134,304 +137,330 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
     }
   };
 
-  const renderFormattedContent = (content) => {
-    if (!content) return null;
-
-    const lines = content.split('\n');
-
-    return lines.map((line, idx) => {
-      if (line.startsWith('### ') || line.startsWith('#### ')) {
-        const title = line.replace(/^#{3,4}\s+/, '');
-        return (
-          <h4 key={idx} className="font-semibold text-slate-100 text-sm mt-3 mb-1">
-            {renderLineWithClickableCodes(title)}
-          </h4>
-        );
-      }
-
-      if (line.trim().startsWith('- ')) {
-        const bulletText = line.trim().substring(2);
-        return (
-          <div key={idx} className="flex items-start gap-2 text-xs text-slate-300 my-0.5 pl-2">
-            <span className="text-cyan-400 font-bold">•</span>
-            <div>{renderLineWithClickableCodes(bulletText)}</div>
-          </div>
-        );
-      }
-
-      if (!line.trim()) {
-        return <div key={idx} className="h-2" />;
-      }
-
-      return (
-        <p key={idx} className="text-xs text-slate-300 my-1 leading-relaxed">
-          {renderLineWithClickableCodes(line)}
-        </p>
-      );
-    });
-  };
-
-  const renderLineWithClickableCodes = (text) => {
-    const codeRegex = /(`?[A-Za-z0-9_\-]{3,15}`?)/g;
+  const renderTextWithActivityChips = (text) => {
+    const codeRegex = /\b(ACT-[A-Za-z0-9_\-]+|[A-Za-z]{2,5}-\d{1,5})\b/gi;
     const parts = text.split(codeRegex);
 
     return parts.map((part, i) => {
-      const cleanCode = part.replace(/`/g, '');
-      if (cleanCode.match(/^(ACT-[A-Za-z0-9_\-]+|PIP-\d+|CIV-\d+|ELE-\d+)$/i)) {
+      if (part.match(/^(ACT-[A-Za-z0-9_\-]+|[A-Za-z]{2,5}-\d{1,5})$/i)) {
         return (
           <button
             key={i}
-            onClick={() => onSelectActivityCode && onSelectActivityCode(cleanCode)}
-            className="inline-flex items-center gap-1 bg-cyan-950/70 text-cyan-300 font-mono text-[11px] px-1.5 py-0.5 rounded border border-cyan-700 hover:bg-cyan-900 transition-colors mx-0.5 font-medium cursor-pointer"
-            title={`Click to view activity ${cleanCode} in schedule`}
+            type="button"
+            onClick={() => onSelectActivityCode && onSelectActivityCode(part)}
+            className="activity-code-chip"
+            title={`Click to view activity ${part} in schedule`}
           >
-            <span>{cleanCode}</span>
-            <ExternalLink size={10} className="opacity-70 flex-shrink-0" />
+            <span>{part}</span>
+            <ExternalLink size={10} className="opacity-75 flex-shrink-0" />
           </button>
         );
       }
-
-      if (part.includes('**')) {
-        const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
-        return boldParts.map((bPart, bi) => {
-          if (bPart.startsWith('**') && bPart.endsWith('**')) {
-            return <strong key={bi} className="font-semibold text-slate-100">{bPart.slice(2, -2)}</strong>;
-          }
-          return bPart;
-        });
-      }
-
       return part;
     });
   };
 
+  const renderAssistantMarkdown = (content) => {
+    if (!content) return null;
+
+    const components = {
+      code({ inline, className, children, ...props }) {
+        const textVal = String(children).replace(/\n$/, '');
+        if (inline && textVal.match(/^(ACT-[A-Za-z0-9_\-]+|[A-Za-z]{2,5}-\d{1,5})$/i)) {
+          return (
+            <button
+              type="button"
+              onClick={() => onSelectActivityCode && onSelectActivityCode(textVal)}
+              className="activity-code-chip"
+              title={`Click to view activity ${textVal} in schedule`}
+            >
+              <span>{textVal}</span>
+              <ExternalLink size={10} className="opacity-75 flex-shrink-0" />
+            </button>
+          );
+        }
+        return (
+          <code className={className} {...props}>
+            {children}
+          </code>
+        );
+      },
+      p({ children }) {
+        return (
+          <p>
+            {React.Children.map(children, (child) => {
+              if (typeof child === 'string') {
+                return renderTextWithActivityChips(child);
+              }
+              return child;
+            })}
+          </p>
+        );
+      },
+      li({ children }) {
+        return (
+          <li>
+            {React.Children.map(children, (child) => {
+              if (typeof child === 'string') {
+                return renderTextWithActivityChips(child);
+              }
+              return child;
+            })}
+          </li>
+        );
+      },
+    };
+
+    return (
+      <div className="ai-markdown-content">
+        <ReactMarkdown components={components}>{content}</ReactMarkdown>
+      </div>
+    );
+  };
+
   const suggestionChips = [
+    { label: '👥 Assigned Team', prompt: 'How many supervisors are assigned to this project?' },
     { label: '📊 Project Overview', prompt: 'Give me an operational overview of project status' },
     { label: "📅 Today's Work", prompt: "What activities are scheduled for today?" },
     { label: '⚠️ Overdue Activities', prompt: 'Show me all overdue activities' },
     { label: '⏳ Upcoming Deadlines', prompt: 'What activities are due in the next 7 days?' },
     { label: '🏗️ Discipline Progress', prompt: 'Provide a discipline progress breakdown' },
-    { label: '📝 Recent Site Updates', prompt: 'Show recent site updates and audit logs' },
   ];
 
   return (
-    <div className="project-ai-workspace">
-      {/* Sidebar: Conversations */}
-      <div className="project-ai-sidebar">
-        <div className="project-ai-sidebar-header">
-          <button
-            onClick={handleNewChat}
-            className="project-ai-new-chat-btn"
-          >
-            <Plus size={16} className="flex-shrink-0" />
-            <span>+ New Chat Session</span>
-          </button>
-        </div>
-
-        <div className="project-ai-conv-list">
-          <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-            Recent Conversations
+    <div className="project-ai-card">
+      {/* Clean AI Header */}
+      <div className="project-ai-header">
+        <div className="project-ai-header-main">
+          <div className="project-ai-icon-badge">
+            <Bot size={20} />
           </div>
-
-          {fetchingHistory ? (
-            <div className="p-4 text-center text-xs text-slate-400 animate-pulse">Loading history...</div>
-          ) : conversations.length === 0 ? (
-            <div className="p-4 text-center text-xs text-slate-400">No chat history yet.</div>
-          ) : (
-            conversations.map((conv) => {
-              const isActive = conv.id === activeConversationId;
-              return (
-                <div
-                  key={conv.id}
-                  onClick={() => handleSelectConversation(conv.id)}
-                  className={`project-ai-conv-item ${isActive ? 'active' : ''}`}
-                >
-                  <div className="project-ai-conv-item-title">
-                    <MessageSquare size={14} className="flex-shrink-0 text-cyan-400" />
-                    <span className="truncate">{conv.title}</span>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteConversation(e, conv.id)}
-                    className="project-ai-delete-btn"
-                    title="Delete Conversation"
-                  >
-                    <Trash2 size={14} className="flex-shrink-0" />
-                  </button>
-                </div>
-              );
-            })
-          )}
+          <div className="project-ai-header-titles">
+            <div className="project-ai-title-row">
+              <h2 className="project-ai-main-heading">Project AI</h2>
+              <span className="project-ai-project-name">— {project.name}</span>
+              <div className="project-ai-badge-group">
+                <span className="ai-badge ai-badge-blue">
+                  PROJECT SCOPED
+                </span>
+                <span className="ai-badge ai-badge-amber">
+                  <Lock size={10} />
+                  READ ONLY
+                </span>
+              </div>
+            </div>
+            <div className="project-ai-meta-row">
+              <span>Project: <strong className="font-mono">{project.project_code}</strong></span>
+              <span className="meta-separator">•</span>
+              <span>Role: <strong>{user.role}</strong></span>
+              {assignedDiscipline && (
+                <>
+                  <span className="meta-separator">•</span>
+                  <span className="text-amber-700 font-semibold">({assignedDiscipline} Scoped)</span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="project-ai-main">
-        {/* Header */}
-        <div className="project-ai-header">
-          <div className="project-ai-header-left">
-            <div className="project-ai-avatar">
-              <Bot size={18} className="flex-shrink-0" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                Project Operational AI Assistant
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-600/40 uppercase tracking-wider">
-                  <Lock size={11} className="text-cyan-400 flex-shrink-0" />
-                  READ-ONLY ASSISTANT
-                </span>
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Scope: <span className="text-cyan-300 font-mono">{project.project_code}</span> | Role:{' '}
-                <span className="text-slate-200 font-medium">{user.role}</span>
-                {assignedDiscipline && (
-                  <span className="ml-1 text-amber-400 font-medium">({assignedDiscipline} Scoped)</span>
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Banner */}
-        {errorMsg && (
-          <div className="bg-red-950/80 border-b border-red-800/80 px-4 py-2 text-xs text-red-200 flex items-center justify-between">
-            <span>{errorMsg}</span>
-            <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white cursor-pointer">
-              <X size={14} className="flex-shrink-0" />
+      {/* Main Two-Column Layout Shell */}
+      <div className="project-ai-body">
+        {/* LEFT SIDEBAR: Conversations */}
+        <aside className="project-ai-sidebar">
+          <div className="project-ai-sidebar-top">
+            <button
+              type="button"
+              onClick={handleNewChat}
+              className="btn-new-chat"
+            >
+              <Plus size={15} />
+              <span>+ New Chat</span>
             </button>
           </div>
-        )}
 
-        {/* Message Stream */}
-        <div className="project-ai-stream">
-          {messages.length === 0 ? (
-            <div className="project-ai-empty-state">
-              <div className="project-ai-empty-icon">
-                <Bot size={30} className="flex-shrink-0 text-cyan-400" />
-              </div>
-              <h4 className="text-sm font-semibold text-slate-100 mb-1">
-                Project Operational Intelligence
-              </h4>
-              <p className="text-xs text-slate-400 mb-4 max-w-lg mx-auto leading-relaxed">
-                Ask questions about baseline schedules, actual site progress, overdue activities, upcoming deadlines, or discipline status. All responses are derived strictly from this project's database.
-              </p>
-
-              <div className="project-ai-chips-grid">
-                {suggestionChips.map((chip, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSendMessage(chip.prompt)}
-                    className="project-ai-chip-btn"
-                  >
-                    <span className="text-sm flex-shrink-0">{chip.label.split(' ')[0]}</span>
-                    <span className="font-medium truncate">{chip.label.substring(chip.label.indexOf(' ') + 1)}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="project-ai-sidebar-list">
+            <div className="sidebar-section-label">
+              Recent Conversations
             </div>
-          ) : (
-            messages.map((msg, i) => {
-              const isUser = msg.role === 'USER';
-              let sources = [];
-              if (msg.metadata_json) {
-                try {
-                  sources = JSON.parse(msg.metadata_json);
-                } catch (e) {}
-              }
 
-              return (
-                <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+            {fetchingHistory ? (
+              <div className="sidebar-loading-text">Loading history...</div>
+            ) : conversations.length === 0 ? (
+              <div className="sidebar-empty-text">No chat history yet.</div>
+            ) : (
+              conversations.map((conv) => {
+                const isActive = conv.id === activeConversationId;
+                return (
                   <div
-                    className={`max-w-3xl rounded-xl p-3 text-xs shadow-md ${
-                      isUser
-                        ? 'bg-gradient-to-r from-blue-700 to-cyan-700 text-white rounded-br-none'
-                        : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
-                    }`}
+                    key={conv.id}
+                    onClick={() => handleSelectConversation(conv.id)}
+                    className={`sidebar-conv-row ${isActive ? 'active' : ''}`}
                   >
-                    {!isUser && (
-                      <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 mb-2">
-                        <span className="font-semibold text-cyan-400 flex items-center gap-1 text-[11px]">
-                          <Bot size={13} className="flex-shrink-0 text-cyan-400" />
-                          AI Assistant
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="space-y-1 leading-relaxed">
-                      {isUser ? (
-                        <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
-                      ) : (
-                        renderFormattedContent(msg.content)
-                      )}
+                    <div className="conv-row-title-block">
+                      <MessageSquare size={14} className="conv-icon" />
+                      <span className="conv-title-text" title={conv.title}>
+                        {conv.title}
+                      </span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteConversation(e, conv.id)}
+                      className="conv-delete-btn"
+                      title="Delete Conversation"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </aside>
 
-                    {!isUser && sources && sources.length > 0 && (
-                      <details className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-slate-400">
-                        <summary className="cursor-pointer font-medium hover:text-cyan-400 transition-colors">
-                          Inspect Database Tools Executed ({sources.length})
-                        </summary>
-                        <div className="mt-1.5 space-y-1 pl-2 bg-slate-950/60 p-2 rounded border border-slate-800/60 font-mono">
-                          {sources.map((s, si) => (
-                            <div key={si} className="flex items-center justify-between text-[10px]">
-                              <span className="text-cyan-400 font-semibold">{s.tool}</span>
-                              <span className="text-slate-500">{JSON.stringify(s.args || {})}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
+        {/* MAIN CHAT AREA */}
+        <main className="project-ai-chat-area">
+          {errorMsg && (
+            <div className="ai-error-banner">
+              <span>{errorMsg}</span>
+              <button type="button" onClick={() => setErrorMsg(null)} className="error-close-btn">
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Message Stream */}
+          <div className="project-ai-stream-container">
+            <div className="stream-inner-max-width">
+              {messages.length === 0 ? (
+                <div className="project-ai-empty-wrapper">
+                  <div className="empty-avatar-icon">
+                    <Bot size={28} />
+                  </div>
+                  <h3 className="empty-heading">Project Operational Intelligence</h3>
+                  <p className="empty-description">
+                    Ask operational questions about baseline schedules, assigned team members, site progress, overdue activities, or discipline status. All data is derived strictly from this project's database.
+                  </p>
+
+                  <div className="empty-chips-grid">
+                    {suggestionChips.map((chip, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSendMessage(chip.prompt)}
+                        className="chip-prompt-btn"
+                      >
+                        <span className="chip-icon">{chip.label.split(' ')[0]}</span>
+                        <span className="chip-text">{chip.label.substring(chip.label.indexOf(' ') + 1)}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              );
-            })
-          )}
+              ) : (
+                messages.map((msg, i) => {
+                  const isUser = msg.role === 'USER';
+                  let sources = [];
+                  if (msg.metadata_json) {
+                    try {
+                      sources = JSON.parse(msg.metadata_json);
+                    } catch (e) {}
+                  }
 
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-slate-900 border border-slate-800 text-slate-300 rounded-xl rounded-bl-none p-3 text-xs flex items-center gap-2 shadow-md">
-                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                <span className="animate-pulse">Retrieving live project data & generating operational answer...</span>
-              </div>
+                  return (
+                    <div key={i} className={`chat-message-row ${isUser ? 'user-row' : 'assistant-row'}`}>
+                      <div className={`chat-bubble ${isUser ? 'user-bubble' : 'assistant-bubble'}`}>
+                        {!isUser && (
+                          <div className="assistant-bubble-header">
+                            <span className="assistant-name-tag">
+                              <Bot size={14} className="bot-icon-small" />
+                              AI Assistant
+                            </span>
+                            <span className="message-timestamp">
+                              {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="message-body-content">
+                          {isUser ? (
+                            <p className="user-message-text">{msg.content}</p>
+                          ) : (
+                            renderAssistantMarkdown(msg.content)
+                          )}
+                        </div>
+
+                        {!isUser && sources && sources.length > 0 && (
+                          <details className="tools-disclosure">
+                            <summary className="tools-disclosure-summary">
+                              <Database size={11} className="inline mr-1 opacity-70" />
+                              Project data consulted ({sources.length} {sources.length === 1 ? 'tool' : 'tools'})
+                            </summary>
+                            <div className="tools-disclosure-body">
+                              {sources.map((s, si) => (
+                                <div key={si} className="tool-source-item">
+                                  <span className="tool-name">{s.tool}</span>
+                                  <span className="tool-args">{JSON.stringify(s.args || {})}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+
+              {loading && (
+                <div className="chat-message-row assistant-row">
+                  <div className="chat-bubble assistant-bubble loading-bubble">
+                    <div className="loading-dot" />
+                    <span>Retrieving live project data & generating response...</span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
 
-        {/* Input Bar */}
-        <div className="project-ai-input-container">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-            className="project-ai-input-form"
-          >
-            <input
-              type="text"
-              value={promptInput}
-              onChange={(e) => setPromptInput(e.target.value)}
-              placeholder={
-                assignedDiscipline
-                  ? `Ask operational AI assistant (${assignedDiscipline} discipline scoped)...`
-                  : 'Ask operational AI assistant (project-wide)...'
-              }
-              disabled={loading}
-              className="project-ai-input-field"
-            />
-            <button
-              type="submit"
-              disabled={!promptInput.trim() || loading}
-              className="project-ai-send-btn"
-            >
-              <span>Send</span>
-              <Send size={14} className="flex-shrink-0" />
-            </button>
-          </form>
-        </div>
+          {/* Bottom Anchored Chat Input Bar */}
+          <div className="project-ai-input-bar">
+            <div className="input-inner-max-width">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="chat-input-form"
+              >
+                <input
+                  type="text"
+                  value={promptInput}
+                  onChange={(e) => setPromptInput(e.target.value)}
+                  placeholder={
+                    assignedDiscipline
+                      ? `Ask operational AI assistant (${assignedDiscipline} discipline scoped)...`
+                      : 'Ask operational AI assistant (project-wide)...'
+                  }
+                  disabled={loading}
+                  className="chat-input-control"
+                />
+                <button
+                  type="submit"
+                  disabled={!promptInput.trim() || loading}
+                  className="btn-send-message"
+                >
+                  <span>Send</span>
+                  <Send size={14} />
+                </button>
+              </form>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );
 }
+
+
 

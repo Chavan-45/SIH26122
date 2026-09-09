@@ -505,17 +505,30 @@ class TestPhase7AIAssistant(unittest.TestCase):
         sources = response.json()["sources"]
         self.assertTrue(any(s["tool"] == "get_overdue_activities" for s in sources))
 
-    def test_23_clickable_activity_code_formatting(self):
-        """23. Assistant messages format activity codes using backticks or brackets."""
+    def test_24_get_project_team_tool(self):
+        """24. get_project_team tool returns accurate supervisor count and members."""
+        db = TestingSessionLocal()
+        res = execute_tool(db, self.project_id, "PLANNER", None, "get_project_team", {})
+        self.assertIn("supervisor_count", res)
+        self.assertEqual(res["supervisor_count"], 2)
+        self.assertIn("members", res)
+        self.assertTrue(any(m["role"] == "SUPERVISOR" for m in res["members"]))
+        db.close()
+
+    def test_25_team_chat_query_routing(self):
+        """25. Team queries return project supervisor count and members instead of 0 activity search."""
         response = client.post(
             f"/api/projects/{self.project_id}/ai/chat",
-            json={"prompt": "What is status of ACT-CIV-002?"},
+            json={"prompt": "How many supervisors are assigned?"},
             headers={"Authorization": f"Bearer {self.planner_token}"},
         )
         self.assertEqual(response.status_code, 200)
         content = response.json()["assistant_message"]["content"]
-        self.assertIn("ACT-CIV-002", content)
+        self.assertIn("Assigned Supervisors", content)
+        sources = response.json()["sources"]
+        self.assertTrue(any(s["tool"] == "get_project_team" for s in sources))
 
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -24,6 +24,7 @@ from app.ai.tools import (
     get_discipline_progress,
     get_recent_progress_updates,
     get_activity_progress_history,
+    get_project_team,
 )
 
 logger = logging.getLogger(__name__)
@@ -155,6 +156,7 @@ def _run_gemini_sdk_turn(
         get_discipline_progress,
         get_recent_progress_updates,
         get_activity_progress_history,
+        get_project_team,
     ]
 
     contents = []
@@ -379,6 +381,22 @@ def _run_fallback_tool_engine(
             text += f"- `{u['activity_code']}` ({u['activity_name']}) — `{u['update_type']}`\n"
             text += f"  - Reported by **{u['reporter_name']}** on {u['reported_date']}\n"
             text += f"  - Progress: **{u['progress_percentage']}%** | Remarks: {u['remarks'] or 'N/A'}\n"
+        return text, sources
+
+    # Project team / members / supervisors query
+    if any(k in prompt_lower for k in ["supervisor", "supervisors", "team", "who is assigned", "assigned to this project", "project member", "members", "who is the civil supervisor", "team members"]):
+        res = execute_tool(db, project.id, user.role, user_discipline, "get_project_team", {})
+        sources.append({"tool": "get_project_team", "args": {}})
+
+        scount = res.get("supervisor_count", 0)
+        members = res.get("members", [])
+
+        text = f"### Project Team Overview (`{res.get('project_code', '')}`)\n\n"
+        text += f"- **Assigned Supervisors**: **{scount}**\n"
+        text += f"- **Total Members**: **{res.get('total_members', len(members))}**\n\n"
+        text += "#### Team Members & Roles:\n"
+        for m in members:
+            text += f"- **{m['full_name']}** — `{m['role']}` (Discipline: `{m['discipline']}`)\n"
         return text, sources
 
     # General activity search fallback
