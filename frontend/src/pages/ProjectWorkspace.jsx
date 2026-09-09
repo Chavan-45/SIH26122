@@ -10,8 +10,13 @@ import {
   getSupervisors,
   getScheduleStatus,
   getActivities,
+  getActivity,
   previewSchedule,
   importSchedule,
+  reportActivityProgress,
+  getActivityExecution,
+  getActivityProgressHistory,
+  getExecutionSummary,
 } from '../services/api';
 import Navbar from '../components/Navbar';
 import {
@@ -42,7 +47,15 @@ import {
   Check,
   AlertTriangle,
   Layers,
+  Play,
+  Pause,
+  RotateCcw,
+  CheckCircle,
+  TrendingUp,
+  BarChart3,
+  History,
 } from 'lucide-react';
+
 
 const DISCIPLINES = [
   { value: 'CIVIL', label: 'Civil Engineering' },
@@ -134,17 +147,82 @@ export default function ProjectWorkspace() {
   const [isRemoving, setIsRemoving] = useState(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
 
+  // Execution & Progress Tracking states (Phase 5)
+  const [executionSummary, setExecutionSummary] = useState(null);
+  const [activityHistory, setActivityHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Progress Reporting Modal state
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [progressTargetActivity, setProgressTargetActivity] = useState(null);
+  const [progressUpdateType, setProgressUpdateType] = useState('PROGRESS');
+  const [progressReportedDate, setProgressReportedDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
+  const [progressPercentageVal, setProgressPercentageVal] = useState('');
+  const [progressRemarks, setProgressRemarks] = useState('');
+  const [progressError, setProgressError] = useState('');
+  const [isSubmittingProgress, setIsSubmittingProgress] = useState(false);
+
   const isPlannerOwner = user?.role === 'PLANNER' && project?.is_owner;
 
-  // Fetch Core Project Data & Schedule Status
+  // Helper to derive available status actions based on state machine rules
+  const getAvailableActions = useCallback((executionStatus, progressPercentage) => {
+    const status = executionStatus || 'NOT_STARTED';
+    const progress = progressPercentage || 0;
+
+    switch (status) {
+      case 'NOT_STARTED':
+        return ['START'];
+
+      case 'IN_PROGRESS': {
+        const actions = [];
+        if (progress < 99) {
+          actions.push('PROGRESS');
+        }
+        actions.push('COMPLETE', 'ON_HOLD');
+        return actions;
+      }
+
+      case 'ON_HOLD':
+        return ['RESUME'];
+
+      case 'COMPLETED':
+      default:
+        return []; // Completed activities are locked!
+    }
+  }, []);
+
+  // Check if current user is authorized to report progress on a specific activity
+  const canUserReportActivity = useCallback(
+    (act) => {
+      if (!act) return false;
+      if (act.execution_status === 'COMPLETED') return false;
+
+      const actions = getAvailableActions(act.execution_status, act.progress_percentage);
+      if (actions.length === 0) return false;
+
+      if (isPlannerOwner) return true;
+
+      if (user?.role === 'SUPERVISOR') {
+        const userDisc = project?.assigned_discipline;
+        return userDisc && act.discipline === userDisc && act.discipline !== 'UNASSIGNED';
+      }
+      return false;
+    },
+    [isPlannerOwner, user?.role, project?.assigned_discipline, getAvailableActions]
+  );
+
+  // Fetch Core Project Data & Schedule Status & Execution Summary
   const fetchProjectData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [projRes, membersRes, schedRes] = await Promise.all([
+      const [projRes, membersRes, schedRes, execSummaryRes] = await Promise.all([
         getProject(token, projectId),
         getProjectMembers(token, projectId),
         getScheduleStatus(token, projectId),
+        getExecutionSummary(token, projectId),
       ]);
 
       if (projRes.success && projRes.data) {
@@ -168,6 +246,10 @@ export default function ProjectWorkspace() {
       if (schedRes.success && schedRes.data) {
         setScheduleStatus(schedRes.data);
       }
+
+      if (execSummaryRes.success && execSummaryRes.data) {
+        setExecutionSummary(execSummaryRes.data);
+      }
     } catch (err) {
       setError('A network error occurred while loading the project workspace.');
     } finally {
@@ -175,10 +257,114 @@ export default function ProjectWorkspace() {
     }
   }, [token, projectId]);
 
-  // Fetch Activities for Schedule Table
+  // Fetch activity progress history when drawer opens
+  useEffect(() => {
+    if (selectedActivity && selectedActivity.id) {
+      setHistoryLoading(true);
+      getActivityProgressHistory(token, projectId, selectedActivity.id).then((res) => {
+        if (res.success && res.data) {
+          setActivityHistory(res.data);
+        } else {
+          setActivityHistory([]);
+        }
+        setHistoryLoading(false);
+      });
+    } else {
+      setActivityHistory([]);
+    }
+  }, [token, projectId, selectedActivity]);
+
+  // Helper to open Progress Reporting Modal
+  const openProgressModal = (act, e) => {
+    if (e) e.stopPropagation();
+    if (!act || act.execution_status === 'COMPLETED') return;
+
+    setProgressTargetActivity(act);
+    setProgressError('');
+    setProgressReportedDate(new Date().toISOString().split('T')[0]);
+    setProgressRemarks('');
+
+    const actions = getAvailableActions(act.execution_status, act.progress_percentage);
+    const currentStatus = act.execution_status || 'NOT_STARTED';
+
+    if (currentStatus === 'NOT_STARTED') {
+      setProgressUpdateType('START');
+      setProgressPercentageVal('');
+    } else if (currentStatus === 'ON_HOLD') {
+      setProgressUpdateType('RESUME');
+      setProgressPercentageVal(act.progress_percentage || 0);
+    } else if (currentStatus === 'IN_PROGRESS') {
+      if (actions.includes('PROGRESS')) {
+        setProgressUpdateType('PROGRESS');
+        const nextPct = Math.min(99, Math.round((act.progress_percentage || 0) + 10));
+        const minPct = (act.progress_percentage || 0) + 1;
+        setProgressPercentageVal(nextPct >= minPct ? nextPct : minPct);
+      } else {
+        // If progress is 99%, intermediate PROGRESS is not available; default to COMPLETE
+        setProgressUpdateType('COMPLETE');
+        setProgressPercentageVal(100);
+      }
+    }
+
+    setIsProgressModalOpen(true);
+  };
+
+  // Submit progress report / status transition
+  const handleProgressSubmit = async (e) => {
+    e.preventDefault();
+    if (!progressTargetActivity || progressTargetActivity.execution_status === 'COMPLETED') return;
+    setProgressError('');
+
+    let pctVal = null;
+    if (['PROGRESS', 'COMPLETE'].includes(progressUpdateType)) {
+      pctVal = parseFloat(progressPercentageVal);
+      if (isNaN(pctVal)) {
+        setProgressError('Please enter a valid numeric progress percentage.');
+        return;
+      }
+    }
+
+    setIsSubmittingProgress(true);
+    try {
+      const res = await reportActivityProgress(token, projectId, progressTargetActivity.id, {
+        updateType: progressUpdateType,
+        reportedDate: progressReportedDate,
+        progressPercentage: pctVal,
+        remarks: progressRemarks,
+      });
+
+      if (res.success && res.data) {
+        setIsProgressModalOpen(false);
+        showTemporarySuccess(`Progress update (${progressUpdateType}) submitted successfully!`);
+        
+        // Refresh activity list & execution summary
+        fetchActivitiesList();
+        getExecutionSummary(token, projectId).then((sumRes) => {
+          if (sumRes.success) setExecutionSummary(sumRes.data);
+        });
+
+        // If selected activity drawer is open, refresh detail & history
+        if (selectedActivity && selectedActivity.id === progressTargetActivity.id) {
+          getActivity(token, projectId, selectedActivity.id).then((actRes) => {
+            if (actRes.success && actRes.data) setSelectedActivity(actRes.data);
+          });
+        }
+      } else {
+        setProgressError(res.error || 'Failed to submit progress update.');
+      }
+    } catch (err) {
+      setProgressError('Network error while reporting progress.');
+    } finally {
+      setIsSubmittingProgress(false);
+    }
+  };
+
+  // Fetch Activities for Schedule Table smoothly
   const fetchActivitiesList = useCallback(async () => {
     if (!scheduleStatus?.has_schedule) return;
-    setActivitiesLoading(true);
+    if (activities.length === 0) {
+      setActivitiesLoading(true);
+    }
     try {
       const res = await getActivities(token, projectId, {
         page: activitiesPage,
@@ -198,14 +384,14 @@ export default function ProjectWorkspace() {
     } finally {
       setActivitiesLoading(false);
     }
-  }, [token, projectId, scheduleStatus?.has_schedule, activitiesPage, searchQuery, selectedDiscipline, selectedLevel]);
+  }, [token, projectId, scheduleStatus?.has_schedule, activitiesPage, searchQuery, selectedDiscipline, selectedLevel, activities.length]);
 
   useEffect(() => {
     fetchProjectData();
   }, [fetchProjectData]);
 
   useEffect(() => {
-    if (activeTab === 'schedule' || scheduleStatus?.has_schedule) {
+    if (activeTab === 'schedule' && scheduleStatus?.has_schedule) {
       fetchActivitiesList();
     }
   }, [activeTab, fetchActivitiesList, scheduleStatus?.has_schedule]);
@@ -530,30 +716,61 @@ export default function ProjectWorkspace() {
           <div className="overview-tab-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Real Baseline KPI Cards if Schedule Exists */}
             {scheduleStatus?.has_schedule && (
-              <section className="kpi-grid-4">
-                <div className="kpi-card">
-                  <span className="kpi-label">Total Scheduled Activities</span>
-                  <span className="kpi-value font-mono">{scheduleStatus.total_activities}</span>
-                </div>
-                <div className="kpi-card">
-                  <span className="kpi-label">Schedule Start</span>
-                  <span className="kpi-value font-mono" style={{ fontSize: '1.1rem' }}>
-                    {scheduleStatus.earliest_planned_start || project.planned_start_date}
-                  </span>
-                </div>
-                <div className="kpi-card">
-                  <span className="kpi-label">Schedule Finish</span>
-                  <span className="kpi-value font-mono" style={{ fontSize: '1.1rem' }}>
-                    {scheduleStatus.latest_planned_finish || project.planned_end_date}
-                  </span>
-                </div>
-                <div className="kpi-card">
-                  <span className="kpi-label">Disciplines Tracked</span>
-                  <span className="kpi-value font-mono">
-                    {Object.keys(scheduleStatus.discipline_counts || {}).length}
-                  </span>
-                </div>
-              </section>
+              <>
+                <section className="kpi-grid-4">
+                  <div className="kpi-card">
+                    <span className="kpi-label">Total Scheduled Activities</span>
+                    <span className="kpi-value font-mono">{scheduleStatus.total_activities}</span>
+                  </div>
+                  <div className="kpi-card">
+                    <span className="kpi-label">Schedule Start</span>
+                    <span className="kpi-value font-mono" style={{ fontSize: '1.1rem' }}>
+                      {scheduleStatus.earliest_planned_start || project.planned_start_date}
+                    </span>
+                  </div>
+                  <div className="kpi-card">
+                    <span className="kpi-label">Schedule Finish</span>
+                    <span className="kpi-value font-mono" style={{ fontSize: '1.1rem' }}>
+                      {scheduleStatus.latest_planned_finish || project.planned_end_date}
+                    </span>
+                  </div>
+                  <div className="kpi-card">
+                    <span className="kpi-label">Disciplines Tracked</span>
+                    <span className="kpi-value font-mono">
+                      {Object.keys(scheduleStatus.discipline_counts || {}).length}
+                    </span>
+                  </div>
+                </section>
+
+                {executionSummary && (
+                  <section className="kpi-grid-4">
+                    <div className="kpi-card" style={{ borderLeft: '4px solid #2563EB' }}>
+                      <span className="kpi-label">Activities In Progress</span>
+                      <span className="kpi-value font-mono" style={{ color: '#2563EB' }}>
+                        {executionSummary.in_progress}
+                      </span>
+                    </div>
+                    <div className="kpi-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
+                      <span className="kpi-label">Completed Activities</span>
+                      <span className="kpi-value font-mono" style={{ color: 'var(--color-success)' }}>
+                        {executionSummary.completed}
+                      </span>
+                    </div>
+                    <div className="kpi-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
+                      <span className="kpi-label">Activities On Hold</span>
+                      <span className="kpi-value font-mono" style={{ color: 'var(--color-warning)' }}>
+                        {executionSummary.on_hold}
+                      </span>
+                    </div>
+                    <div className="kpi-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
+                      <span className="kpi-label">Average Physical Progress</span>
+                      <span className="kpi-value font-mono" style={{ fontSize: '1.35rem' }}>
+                        {executionSummary.average_progress}%
+                      </span>
+                    </div>
+                  </section>
+                )}
+              </>
             )}
 
             <div className="project-grid-2">
@@ -784,45 +1001,81 @@ export default function ProjectWorkspace() {
                         <tr>
                           <th>Activity ID</th>
                           <th>Activity Name</th>
-                          <th>WBS</th>
-                          <th>Level</th>
                           <th>Discipline</th>
                           <th>Planned Start</th>
                           <th>Planned Finish</th>
-                          <th>Duration</th>
+                          <th>Actual Start</th>
+                          <th>Actual Finish</th>
+                          <th>Progress %</th>
+                          <th>Status</th>
+                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {activities.map((act) => (
-                          <tr
-                            key={act.id}
-                            className="clickable-row"
-                            onClick={() => setSelectedActivity(act)}
-                          >
-                            <td className="font-mono" style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
-                              {act.activity_code}
-                            </td>
-                            <td>{act.activity_name}</td>
-                            <td className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                              {act.wbs_code ? `${act.wbs_code} ${act.wbs_name || ''}` : '-'}
-                            </td>
-                            <td>
-                              {act.schedule_level ? (
-                                <span className="level-badge">{act.schedule_level}</span>
-                              ) : (
-                                '-'
-                              )}
-                            </td>
-                            <td>
-                              <span className="discipline-tag">{act.discipline}</span>
-                            </td>
-                            <td className="font-mono">{act.planned_start}</td>
-                            <td className="font-mono">{act.planned_finish}</td>
-                            <td className="font-mono">
-                              {act.planned_duration ? `${act.planned_duration}d` : '-'}
-                            </td>
-                          </tr>
-                        ))}
+                        {activities.map((act) => {
+                          const canReport = canUserReportActivity(act);
+                          const statusLower = (act.execution_status || 'NOT_STARTED').toLowerCase();
+                          return (
+                            <tr
+                              key={act.id}
+                              className="clickable-row"
+                              onClick={() => setSelectedActivity(act)}
+                            >
+                              <td className="font-mono" style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
+                                {act.activity_code}
+                              </td>
+                              <td style={{ maxWidth: '200px', whiteSpace: 'normal' }}>
+                                <div style={{ fontWeight: '600' }}>{act.activity_name}</div>
+                                {act.wbs_code && (
+                                  <span className="font-mono" style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                                    {act.wbs_code}
+                                  </span>
+                                )}
+                              </td>
+                              <td>
+                                <span className="discipline-tag">{act.discipline}</span>
+                              </td>
+                              <td className="font-mono">{act.planned_start}</td>
+                              <td className="font-mono">{act.planned_finish}</td>
+                              <td className="font-mono">{act.actual_start || '-'}</td>
+                              <td className="font-mono">{act.actual_finish || '-'}</td>
+                              <td style={{ width: '120px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                  <span className="font-mono" style={{ fontSize: '0.75rem', fontWeight: '600' }}>
+                                    {act.progress_percentage || 0}%
+                                  </span>
+                                  <div className="progress-bar-container">
+                                    <div
+                                      className={`progress-bar-fill ${statusLower}`}
+                                      style={{ width: `${act.progress_percentage || 0}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`execution-pill ${statusLower}`}>
+                                  <span className="status-dot-small" />
+                                  <span>{(act.execution_status || 'NOT_STARTED').replace('_', ' ')}</span>
+                                </span>
+                              </td>
+                              <td onClick={(e) => e.stopPropagation()}>
+                                {canReport ? (
+                                  <button
+                                    type="button"
+                                    className="btn-primary btn-sm"
+                                    style={{ fontSize: '0.725rem', padding: '0.25rem 0.55rem' }}
+                                    onClick={(e) => openProgressModal(act, e)}
+                                  >
+                                    <Clock size={12} />
+                                    <span>Report</span>
+                                  </button>
+                                ) : (
+                                  <span style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)' }}>Read Only</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
@@ -944,87 +1197,209 @@ export default function ProjectWorkspace() {
       {/* ====================================================================
           ACTIVITY DETAIL DRAWER
           ==================================================================== */}
-      {selectedActivity && (
-        <div className="drawer-backdrop" onClick={() => setSelectedActivity(null)}>
-          <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="drawer-header">
-              <div>
-                <span className="project-code-badge font-mono">{selectedActivity.activity_code}</span>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--color-primary)', marginTop: '0.25rem' }}>
-                  {selectedActivity.activity_name}
-                </h3>
-              </div>
-              <button
-                type="button"
-                className="btn-icon-close"
-                onClick={() => setSelectedActivity(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
+      {selectedActivity && (() => {
+        const canReport = canUserReportActivity(selectedActivity);
+        const statusLower = (selectedActivity.execution_status || 'NOT_STARTED').toLowerCase();
 
-            <div className="drawer-body">
-              <div className="overview-details-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Discipline</span>
-                  <span className="detail-value">
-                    <span className="discipline-tag">{selectedActivity.discipline}</span>
-                  </span>
+        return (
+          <div className="drawer-backdrop" onClick={() => setSelectedActivity(null)}>
+            <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="drawer-header">
+                <div>
+                  <span className="project-code-badge font-mono">{selectedActivity.activity_code}</span>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--color-primary)', marginTop: '0.25rem' }}>
+                    {selectedActivity.activity_name}
+                  </h3>
                 </div>
-
-                <div className="detail-item">
-                  <span className="detail-label">Schedule Level</span>
-                  <span className="detail-value">
-                    {selectedActivity.schedule_level ? (
-                      <span className="level-badge">{selectedActivity.schedule_level}</span>
-                    ) : (
-                      'Unspecified'
-                    )}
-                  </span>
-                </div>
-
-                <div className="detail-item">
-                  <span className="detail-label">Planned Start</span>
-                  <span className="detail-value font-mono">{selectedActivity.planned_start}</span>
-                </div>
-
-                <div className="detail-item">
-                  <span className="detail-label">Planned Finish</span>
-                  <span className="detail-value font-mono">{selectedActivity.planned_finish}</span>
-                </div>
-
-                <div className="detail-item">
-                  <span className="detail-label">Planned Duration</span>
-                  <span className="detail-value font-mono">
-                    {selectedActivity.planned_duration ? `${selectedActivity.planned_duration} days` : 'Not specified'}
-                  </span>
-                </div>
-
-                <div className="detail-item">
-                  <span className="detail-label">WBS Code</span>
-                  <span className="detail-value font-mono">{selectedActivity.wbs_code || '-'}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {canReport && (
+                    <button
+                      type="button"
+                      className="btn-primary btn-sm"
+                      onClick={(e) => openProgressModal(selectedActivity, e)}
+                    >
+                      <Clock size={14} />
+                      <span>Report Progress</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-icon-close"
+                    onClick={() => setSelectedActivity(null)}
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
               </div>
 
-              {selectedActivity.wbs_name && (
-                <div className="detail-item">
-                  <span className="detail-label">WBS Name</span>
-                  <span className="detail-value">{selectedActivity.wbs_name}</span>
-                </div>
-              )}
+              <div className="drawer-body">
+                {/* SECTION 1: ACTUAL EXECUTION STATUS */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', backgroundColor: '#F8FAFC', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Actual Field Execution
+                    </span>
+                    <span className={`execution-pill ${statusLower}`}>
+                      <span className="status-dot-small" />
+                      <span>{(selectedActivity.execution_status || 'NOT_STARTED').replace('_', ' ')}</span>
+                    </span>
+                  </div>
 
-              {selectedActivity.predecessors && (
-                <div className="scope-description-box">
-                  <span className="scope-label">Predecessor Logic</span>
-                  <span className="font-mono" style={{ fontSize: '0.85rem', color: 'var(--color-primary)' }}>
-                    {selectedActivity.predecessors}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                      <span style={{ color: 'var(--color-text-secondary)' }}>Physical Progress:</span>
+                      <span className="font-mono" style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
+                        {selectedActivity.progress_percentage || 0}%
+                      </span>
+                    </div>
+                    <div className="progress-bar-container" style={{ height: '10px' }}>
+                      <div
+                        className={`progress-bar-fill ${statusLower}`}
+                        style={{ width: `${selectedActivity.progress_percentage || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="overview-details-grid" style={{ marginTop: '0.25rem' }}>
+                    <div className="detail-item">
+                      <span className="detail-label">Actual Start</span>
+                      <span className="detail-value font-mono">{selectedActivity.actual_start || 'Not Started'}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Actual Finish</span>
+                      <span className="detail-value font-mono">{selectedActivity.actual_finish || 'In Progress'}</span>
+                    </div>
+                  </div>
+
+                  {selectedActivity.execution_status === 'COMPLETED' && (
+                    <div className="auth-success-banner" style={{ margin: '0.25rem 0 0', padding: '0.5rem 0.75rem', fontSize: '0.775rem' }}>
+                      <CheckCircle size={15} />
+                      <span>Activity Completed • Execution updates are locked after completion.</span>
+                    </div>
+                  )}
+
+                  {selectedActivity.last_updated_by_name && (
+                    <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <UserPlus size={12} />
+                      <span>Last updated by {selectedActivity.last_updated_by_name} on {new Date(selectedActivity.last_updated_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* SECTION 2: BASELINE PLAN */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Baseline Schedule Target
+                  </h4>
+                  <div className="overview-details-grid">
+                    <div className="detail-item">
+                      <span className="detail-label">Discipline</span>
+                      <span className="detail-value">
+                        <span className="discipline-tag">{selectedActivity.discipline}</span>
+                      </span>
+                    </div>
+
+                    <div className="detail-item">
+                      <span className="detail-label">Schedule Level</span>
+                      <span className="detail-value">
+                        {selectedActivity.schedule_level ? (
+                          <span className="level-badge">{selectedActivity.schedule_level}</span>
+                        ) : (
+                          'Unspecified'
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="detail-item">
+                      <span className="detail-label">Planned Start</span>
+                      <span className="detail-value font-mono">{selectedActivity.planned_start}</span>
+                    </div>
+
+                    <div className="detail-item">
+                      <span className="detail-label">Planned Finish</span>
+                      <span className="detail-value font-mono">{selectedActivity.planned_finish}</span>
+                    </div>
+
+                    <div className="detail-item">
+                      <span className="detail-label">Planned Duration</span>
+                      <span className="detail-value font-mono">
+                        {selectedActivity.planned_duration ? `${selectedActivity.planned_duration} days` : 'Not specified'}
+                      </span>
+                    </div>
+
+                    <div className="detail-item">
+                      <span className="detail-label">WBS Code</span>
+                      <span className="detail-value font-mono">{selectedActivity.wbs_code || '-'}</span>
+                    </div>
+                  </div>
+
+                  {selectedActivity.wbs_name && (
+                    <div className="detail-item">
+                      <span className="detail-label">WBS Name</span>
+                      <span className="detail-value">{selectedActivity.wbs_name}</span>
+                    </div>
+                  )}
+
+                  {selectedActivity.predecessors && (
+                    <div className="scope-description-box">
+                      <span className="scope-label">Predecessor Logic</span>
+                      <span className="font-mono" style={{ fontSize: '0.85rem', color: 'var(--color-primary)' }}>
+                        {selectedActivity.predecessors}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 3: PROGRESS AUDIT HISTORY */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <History size={14} />
+                      <span>Progress Audit History</span>
+                    </h4>
+                    <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      {activityHistory.length} Updates
+                    </span>
+                  </div>
+
+                  {historyLoading ? (
+                    <div className="loading-card" style={{ padding: '1rem', border: 'none' }}>
+                      <RefreshCw size={16} className="spin-icon" />
+                      <span style={{ fontSize: '0.8rem' }}>Loading audit trail...</span>
+                    </div>
+                  ) : activityHistory.length === 0 ? (
+                    <div className="empty-team-state" style={{ padding: '1rem' }}>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>No progress updates recorded yet.</p>
+                    </div>
+                  ) : (
+                    <div className="timeline-container">
+                      {activityHistory.map((up) => {
+                        const typeLower = up.update_type.toLowerCase();
+                        return (
+                          <div key={up.id} className="timeline-item">
+                            <div className={`timeline-badge ${typeLower}`} />
+                            <div className="timeline-header">
+                              <span className="timeline-title">
+                                {up.update_type}
+                                {up.progress_percentage !== null && ` (${up.progress_percentage}%)`}
+                              </span>
+                              <span className="timeline-date font-mono">{up.reported_date}</span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                              Reported by {up.reported_by_name || `User #${up.reported_by_id}`} via {up.source_type}
+                            </div>
+                            {up.remarks && <p className="timeline-remarks">{up.remarks}</p>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ====================================================================
           MULTI-STEP SCHEDULE IMPORT MODAL (Planner only)
@@ -1465,6 +1840,217 @@ export default function ProjectWorkspace() {
           </div>
         </div>
       )}
+
+      {/* ====================================================================
+          PROGRESS REPORTING MODAL (Phase 5)
+          ==================================================================== */}
+      {isProgressModalOpen && progressTargetActivity && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-dialog" style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <div>
+                <span className="project-code-badge font-mono">{progressTargetActivity.activity_code}</span>
+                <h2 className="modal-title" style={{ marginTop: '0.2rem', fontSize: '1.1rem' }}>
+                  Report Activity Progress
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="btn-icon-close"
+                onClick={() => setIsProgressModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {progressError && (
+              <div className="auth-error-banner" role="alert" style={{ margin: '1rem 1.5rem 0' }}>
+                <AlertCircle size={16} />
+                <span>{progressError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleProgressSubmit} className="modal-form">
+              <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--color-border)', fontSize: '0.825rem' }}>
+                <div style={{ fontWeight: '700', color: 'var(--color-primary)' }}>{progressTargetActivity.activity_name}</div>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem', color: 'var(--color-text-secondary)' }}>
+                  <span>Discipline: <strong>{progressTargetActivity.discipline}</strong></span>
+                  <span>Current: <strong>{progressTargetActivity.progress_percentage || 0}% ({(progressTargetActivity.execution_status || 'NOT_STARTED').replace('_', ' ')})</strong></span>
+                </div>
+              </div>
+
+              {/* Action / Transition Type Selector */}
+              {(() => {
+                const availableActions = getAvailableActions(progressTargetActivity.execution_status, progressTargetActivity.progress_percentage);
+                return (
+                  <div className="form-group">
+                    <label className="form-label">Action / Status Transition *</label>
+                    <div className="action-type-grid">
+                      <button
+                        type="button"
+                        className={`action-type-btn ${progressUpdateType === 'START' ? 'active' : ''}`}
+                        disabled={!availableActions.includes('START')}
+                        onClick={() => {
+                          setProgressUpdateType('START');
+                          setProgressPercentageVal('');
+                        }}
+                      >
+                        <Play size={14} />
+                        <span>START</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`action-type-btn ${progressUpdateType === 'PROGRESS' ? 'active' : ''}`}
+                        disabled={!availableActions.includes('PROGRESS')}
+                        onClick={() => {
+                          setProgressUpdateType('PROGRESS');
+                          const minPct = (progressTargetActivity.progress_percentage || 0) + 1;
+                          const nextPct = Math.min(99, Math.round((progressTargetActivity.progress_percentage || 0) + 10));
+                          setProgressPercentageVal(nextPct >= minPct ? nextPct : minPct);
+                        }}
+                      >
+                        <TrendingUp size={14} />
+                        <span>PROGRESS</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`action-type-btn ${progressUpdateType === 'COMPLETE' ? 'active' : ''}`}
+                        disabled={!availableActions.includes('COMPLETE')}
+                        onClick={() => {
+                          setProgressUpdateType('COMPLETE');
+                          setProgressPercentageVal(100);
+                        }}
+                      >
+                        <CheckCircle size={14} />
+                        <span>COMPLETE</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`action-type-btn ${progressUpdateType === 'ON_HOLD' ? 'active' : ''}`}
+                        disabled={!availableActions.includes('ON_HOLD')}
+                        onClick={() => {
+                          setProgressUpdateType('ON_HOLD');
+                          setProgressPercentageVal(progressTargetActivity.progress_percentage || 0);
+                        }}
+                      >
+                        <Pause size={14} />
+                        <span>ON HOLD</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`action-type-btn ${progressUpdateType === 'RESUME' ? 'active' : ''}`}
+                        disabled={!availableActions.includes('RESUME')}
+                        onClick={() => {
+                          setProgressUpdateType('RESUME');
+                          setProgressPercentageVal(progressTargetActivity.progress_percentage || 0);
+                        }}
+                      >
+                        <RotateCcw size={14} />
+                        <span>RESUME</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Reported Date */}
+              <div className="form-group">
+                <label className="form-label">Reported Execution Date *</label>
+                <input
+                  type="date"
+                  className="form-input font-mono"
+                  value={progressReportedDate}
+                  onChange={(e) => setProgressReportedDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Progress Percentage Input (For PROGRESS or COMPLETE) */}
+              {['PROGRESS', 'COMPLETE'].includes(progressUpdateType) && (() => {
+                if (progressUpdateType === 'COMPLETE') {
+                  return (
+                    <div className="form-group">
+                      <label className="form-label">Physical Progress Percentage (%)</label>
+                      <input
+                        type="number"
+                        className="form-input font-mono"
+                        value="100"
+                        disabled
+                      />
+                      <span className="form-help-text">Completion sets progress to 100% and records actual finish date.</span>
+                    </div>
+                  );
+                }
+
+                const curProg = progressTargetActivity.progress_percentage || 0;
+                const minPct = Math.max(1, curProg + 1);
+                const maxPct = 99;
+
+                return (
+                  <div className="form-group">
+                    <label className="form-label">
+                      New Physical Progress Percentage (%) *
+                      <span style={{ fontWeight: '400', color: 'var(--color-text-muted)', marginLeft: '0.35rem' }}>
+                        (Valid range: {minPct}% to {maxPct}%)
+                      </span>
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <input
+                        type="number"
+                        min={minPct}
+                        max={maxPct}
+                        step="1"
+                        className="form-input font-mono"
+                        value={progressPercentageVal}
+                        onChange={(e) => setProgressPercentageVal(e.target.value)}
+                        required
+                      />
+                      <input
+                        type="range"
+                        min={minPct}
+                        max={maxPct}
+                        value={progressPercentageVal || minPct}
+                        onChange={(e) => setProgressPercentageVal(e.target.value)}
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Remarks */}
+              <div className="form-group">
+                <label className="form-label">Field Remarks / Observations</label>
+                <textarea
+                  rows={3}
+                  className="form-textarea"
+                  placeholder="Optional site comments, equipment used, delay notes, etc."
+                  value={progressRemarks}
+                  onChange={(e) => setProgressRemarks(e.target.value)}
+                />
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIsProgressModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={isSubmittingProgress}>
+                  {isSubmittingProgress ? 'Submitting...' : 'Submit Progress Update'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
 
       <footer className="footer">
         <p>© 2026 SIH26122 • Infrastructure Project Baseline &amp; Schedule Database</p>

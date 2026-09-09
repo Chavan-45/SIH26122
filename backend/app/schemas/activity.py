@@ -28,7 +28,13 @@ class ActivityResponse(BaseModel):
     planned_finish: date
     planned_duration: Optional[float] = None
     predecessors: Optional[str] = None
-    created_at: datetime
+    # Execution tracking fields
+    actual_start: Optional[date] = None
+    actual_finish: Optional[date] = None
+    progress_percentage: float = 0.0
+    execution_status: str = "NOT_STARTED"
+    last_updated_at: Optional[datetime] = None
+    last_updated_by_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -28,6 +28,19 @@ class Activity(Base):
 
     # Relationship
     project = relationship("Project", back_populates="activities")
+    execution = relationship(
+        "ActivityExecution",
+        back_populates="activity",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    progress_updates = relationship(
+        "ProgressUpdate",
+        back_populates="activity",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     def __repr__(self) -> str:
         return f"<Activity id={self.id} project_id={self.project_id} code={self.activity_code} name={self.activity_name[:20]}>"

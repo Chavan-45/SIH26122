@@ -469,3 +469,111 @@ export async function getActivity(token, projectId, activityId) {
   }
 }
 
+/* ==========================================================================
+   ACTUAL EXECUTION & PROGRESS TRACKING APIs (Phase 5)
+   ========================================================================== */
+
+/**
+ * Submit progress update / status transition for an activity (Authorized Planner or Discipline Supervisor).
+ */
+export async function reportActivityProgress(token, projectId, activityId, { updateType, reportedDate, progressPercentage, remarks }) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/activities/${activityId}/progress`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        update_type: updateType,
+        reported_date: reportedDate,
+        progress_percentage: progressPercentage,
+        remarks: remarks || null,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Progress report failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to submit progress report' };
+  }
+}
+
+/**
+ * Get current execution state and variance metrics for an activity.
+ */
+export async function getActivityExecution(token, projectId, activityId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/activities/${activityId}/execution`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Execution state not found (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load execution state' };
+  }
+}
+
+/**
+ * Get append-only audit trail of progress updates for an activity.
+ */
+export async function getActivityProgressHistory(token, projectId, activityId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/activities/${activityId}/progress-history`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Progress history not found (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load progress history' };
+  }
+}
+
+/**
+ * Get high-level execution summary for project dashboard.
+ */
+export async function getExecutionSummary(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/execution-summary`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Execution summary failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load execution summary' };
+  }
+}
+
+

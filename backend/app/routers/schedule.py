@@ -1,7 +1,7 @@
 import json
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 
 from app.database.database import get_db
@@ -27,6 +27,19 @@ from app.services.schedule_service import (
 )
 
 router = APIRouter(prefix="/projects", tags=["Schedule & Activities"])
+
+
+def build_activity_response(act: Activity) -> ActivityResponse:
+    res = ActivityResponse.model_validate(act)
+    if act.execution:
+        res.actual_start = act.execution.actual_start
+        res.actual_finish = act.execution.actual_finish
+        res.progress_percentage = act.execution.progress_percentage
+        res.execution_status = act.execution.execution_status
+        res.last_updated_at = act.execution.last_updated_at
+        if act.execution.last_updated_by:
+            res.last_updated_by_name = act.execution.last_updated_by.full_name
+    return res
 
 
 @router.post(
@@ -190,7 +203,7 @@ def list_activities(
     """Paginated list of baseline activities for an authorized project with filtering."""
     verify_project_access(project_id, current_user, db)
 
-    query = db.query(Activity).filter(Activity.project_id == project_id)
+    query = db.query(Activity).options(joinedload(Activity.execution)).filter(Activity.project_id == project_id)
 
     # Search filter
     if search:
@@ -222,7 +235,7 @@ def list_activities(
         .all()
     )
 
-    items = [ActivityResponse.model_validate(act) for act in activities]
+    items = [build_activity_response(act) for act in activities]
 
     return ActivityListResponse(
         items=items,
@@ -249,6 +262,7 @@ def get_activity_detail(
 
     activity = (
         db.query(Activity)
+        .options(joinedload(Activity.execution))
         .filter(Activity.project_id == project_id, Activity.id == activity_id)
         .first()
     )
@@ -259,4 +273,4 @@ def get_activity_detail(
             detail=f"Activity with ID {activity_id} not found in this project.",
         )
 
-    return ActivityResponse.model_validate(activity)
+    return build_activity_response(activity)
