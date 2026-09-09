@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database.database import Base, engine
 import app.models  # Import all models to register on Base.metadata
-from app.routers import auth, test_roles, projects, users, schedule, execution
+from app.routers import auth, test_roles, projects, users, schedule, execution, dashboard
 
 
 
@@ -39,6 +39,7 @@ app.include_router(projects.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(schedule.router, prefix="/api")
 app.include_router(execution.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api")
 
 
 

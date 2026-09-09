@@ -576,4 +576,32 @@ export async function getExecutionSummary(token, projectId) {
   }
 }
 
+/* ==========================================================================
+   PROJECT DASHBOARD APIs (Phase 6)
+   ========================================================================== */
+
+/**
+ * Retrieve 100% database-derived project control dashboard metrics (Authorized users).
+ */
+export async function getProjectDashboard(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/dashboard`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch project dashboard (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load project dashboard' };
+  }
+}
+
 

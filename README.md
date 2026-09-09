@@ -6,7 +6,7 @@
 
 ---
 
-## Current Status: Phase 4 (L5/L6 Schedule Import & Activity Database)
+## Current Status: Phase 6 (Real Project Dashboard & Schedule Health)
 
 The platform currently includes:
 - **Authentication & Roles**: Secure bcrypt password hashing, JWT Bearer tokens, and strict role segregation between **Lead Planners** and **Field Supervisors**.
@@ -16,7 +16,18 @@ The platform currently includes:
 - **Preview & Auto Column Mapping**: Interactive 2-step import wizard that auto-detects column headers using case-insensitive alias matching (e.g. `Activity ID`, `Task Name`, `Start Date`, `Baseline Finish`), validates dates (`finish >= start`), and previews rows before commit.
 - **Transactional Database Safety**: Atomic single-transaction database commit ensures that if any row has validation errors or duplicate activity codes, 0 activities are inserted.
 - **Structured Activity Database**: Activities stored in the `activities` table with unique constraint `(project_id, activity_code)` and audit logs in `schedule_imports`.
-- **Filtered Schedule Workspace & Read-Only Access**: Full schedule workspace with search, discipline filter, schedule level filter (L5, L6), pagination, and activity detail drawer. Supervisors have strict read-only access.
+- **Filtered Schedule Workspace & Read-Only Access**: Full schedule workspace with search, discipline filter, schedule level filter (L5, L6), pagination, and activity detail drawer. Supervisors have strict read-only access to baseline schedules.
+- **Actual Execution & Field Progress Tracking (Phase 5)**: Field execution reporting via `ActivityExecution` and append-only audit trail in `ProgressUpdate`. State machine controls valid status transitions (`START`, `PROGRESS`, `COMPLETE`, `ON_HOLD`, `RESUME`). Completed activities are locked. Strict supervisor discipline authorization ensures supervisors can only report progress on their assigned engineering discipline.
+- **Timezone Configuration & Reusable Date Helpers (Phase 6)**: Configured `APP_TIMEZONE=Asia/Kolkata` via `backend/app/core/datetime_utils.py` (`get_today_date()`, `get_now_datetime()`) ensuring consistent timezone-aware calculations for today, overdue detection, 7-day deadlines, and finish variances.
+- **100% Database-Derived Real Project Control Dashboard (Phase 6)**: Comprehensive, real-time project control dashboard consuming live database data from `Project`, `Activity`, `ActivityExecution`, `ProgressUpdate`, `ProjectMember`, and `User`. No mock data, no fake metrics.
+- **Activity-Weighted Physical Progress**: Overall project physical progress is explicitly calculated as `sum(progress_percentage for every activity) / total_activities` (activities missing execution record count as 0%). UI clearly displays *"Activity-weighted physical progress"*.
+- **Overdue Activities & Carryover**: An activity is defined as overdue when `planned_finish < today` AND `execution_status != COMPLETED`. Overdue days calculated as `today - planned_finish`. Overdue work is displayed in a dedicated high-priority section separate from today's work.
+- **Completed Late Variance**: Completed activities (`execution_status == COMPLETED`) with `actual_finish > planned_finish` are tracked as completed late with positive `finish_variance_days = actual_finish - planned_finish`.
+- **Today's Scheduled Work & 7-Day Upcoming Deadlines**: Today's work is defined as `planned_start <= today <= planned_finish` AND `execution_status != COMPLETED`. Upcoming deadlines window captures uncompleted activities with `today <= planned_finish <= today + 7 days`.
+- **Discipline Progress Breakdown**: Calculates activity-weighted progress and status counts for each discipline (`CIVIL`, `PIPING`, `ELECTRICAL`, `MECHANICAL`, `INSTRUMENTATION`, `HSE`, `UNASSIGNED`).
+- **Baseline vs Actual Adherence**: Schedule-adherence metrics comparing `scheduled_to_have_started` vs `actually_started`, and `scheduled_to_have_finished` vs `actually_completed`.
+- **Role-Aware Dashboard Behavior**: Planners see full project-wide dashboard analytics; Supervisors see overall project summary plus a prominent **MY DISCIPLINE** section with discipline-scoped progress, today's work, overdue carryover, and upcoming deadlines.
+- **Click-Through & SPA Experience**: Clicking activity items opens the existing Activity Detail drawer. Silent 30-second background polling and manual refresh action keep the dashboard updated without page flashes.
 - **UI & Design System**: Approved Oil & Infrastructure Industrial Light Theme.
 
 ---
@@ -139,6 +150,19 @@ SIH26122/
 | `GET` | `/api/projects/{id}/activities` | Project members | Paginated activity listing with search, discipline, and level filters |
 | `GET` | `/api/projects/{id}/activities/{act_id}` | Project members | Get single activity details |
 
+### Execution & Progress Tracking (Phase 5)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/projects/{id}/activities/{act_id}/progress` | Authorized Planner / Supervisor | Submit field progress report / state transition |
+| `GET` | `/api/projects/{id}/activities/{act_id}/execution` | Project members | Get current execution status and finish/overdue variance |
+| `GET` | `/api/projects/{id}/activities/{act_id}/progress-history` | Project members | Get append-only audit trail of progress updates |
+| `GET` | `/api/projects/{id}/execution-summary` | Project members | Get high-level execution summary metrics |
+
+### Real Project Dashboard & Schedule Health (Phase 6)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/projects/{id}/dashboard` | Project members | Get 100% database-derived project control dashboard metrics |
+
 ---
 
 ## Frontend Routes
@@ -150,7 +174,7 @@ SIH26122/
 | `/planner` | Protected (`PLANNER`) | Planner Portal ("My Projects") |
 | `/planner/projects/new` | Protected (`PLANNER`) | Create Infrastructure Project |
 | `/supervisor` | Protected (`SUPERVISOR`) | Supervisor Portal ("Assigned Projects") |
-| `/projects/:projectId` | Project Members | Shared Project Workspace (Overview, Schedule, Team) |
+| `/projects/:projectId` | Project Members | Shared Project Workspace (Dashboard, Schedule Baseline, Team) |
 
 ---
 
@@ -163,7 +187,10 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 - API Root: `http://localhost:8000`
 - Interactive Swagger Docs: `http://localhost:8000/docs`
-- Run Phase 4 Automated Test Suite: `python test_phase4.py`
+- Run Automated Test Suites:
+  - Phase 4: `python test_phase4.py`
+  - Phase 5: `python test_phase5.py`
+  - Phase 6: `python test_phase6.py`
 
 ### 2. Frontend
 ```bash

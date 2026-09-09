@@ -19,6 +19,7 @@ import {
   getExecutionSummary,
 } from '../services/api';
 import Navbar from '../components/Navbar';
+import DashboardTab from '../components/DashboardTab';
 import {
   Building2,
   Calendar,
@@ -92,7 +93,7 @@ export default function ProjectWorkspace() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
@@ -110,6 +111,19 @@ export default function ProjectWorkspace() {
   const [selectedDiscipline, setSelectedDiscipline] = useState('ALL');
   const [selectedLevel, setSelectedLevel] = useState('ALL');
   const [selectedActivity, setSelectedActivity] = useState(null);
+
+  // Helper to open Activity Detail drawer when clicking an item on Dashboard
+  const handleSelectActivityById = async (actId) => {
+    if (!actId) return;
+    try {
+      const res = await getActivity(token, projectId, actId);
+      if (res.success && res.data) {
+        setSelectedActivity(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load activity detail:', err);
+    }
+  };
 
   // Edit Project Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -682,11 +696,11 @@ export default function ProjectWorkspace() {
         <nav className="workspace-nav-tabs">
           <button
             type="button"
-            className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
+            className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
           >
             <Building2 size={16} />
-            <span>Overview</span>
+            <span>Dashboard</span>
           </button>
           <button
             type="button"
@@ -711,188 +725,16 @@ export default function ProjectWorkspace() {
           </button>
         </nav>
 
-        {/* TAB 1: OVERVIEW */}
-        {activeTab === 'overview' && (
-          <div className="overview-tab-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Real Baseline KPI Cards if Schedule Exists */}
-            {scheduleStatus?.has_schedule && (
-              <>
-                <section className="kpi-grid-4">
-                  <div className="kpi-card">
-                    <span className="kpi-label">Total Scheduled Activities</span>
-                    <span className="kpi-value font-mono">{scheduleStatus.total_activities}</span>
-                  </div>
-                  <div className="kpi-card">
-                    <span className="kpi-label">Schedule Start</span>
-                    <span className="kpi-value font-mono" style={{ fontSize: '1.1rem' }}>
-                      {scheduleStatus.earliest_planned_start || project.planned_start_date}
-                    </span>
-                  </div>
-                  <div className="kpi-card">
-                    <span className="kpi-label">Schedule Finish</span>
-                    <span className="kpi-value font-mono" style={{ fontSize: '1.1rem' }}>
-                      {scheduleStatus.latest_planned_finish || project.planned_end_date}
-                    </span>
-                  </div>
-                  <div className="kpi-card">
-                    <span className="kpi-label">Disciplines Tracked</span>
-                    <span className="kpi-value font-mono">
-                      {Object.keys(scheduleStatus.discipline_counts || {}).length}
-                    </span>
-                  </div>
-                </section>
-
-                {executionSummary && (
-                  <section className="kpi-grid-4">
-                    <div className="kpi-card" style={{ borderLeft: '4px solid #2563EB' }}>
-                      <span className="kpi-label">Activities In Progress</span>
-                      <span className="kpi-value font-mono" style={{ color: '#2563EB' }}>
-                        {executionSummary.in_progress}
-                      </span>
-                    </div>
-                    <div className="kpi-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
-                      <span className="kpi-label">Completed Activities</span>
-                      <span className="kpi-value font-mono" style={{ color: 'var(--color-success)' }}>
-                        {executionSummary.completed}
-                      </span>
-                    </div>
-                    <div className="kpi-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
-                      <span className="kpi-label">Activities On Hold</span>
-                      <span className="kpi-value font-mono" style={{ color: 'var(--color-warning)' }}>
-                        {executionSummary.on_hold}
-                      </span>
-                    </div>
-                    <div className="kpi-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
-                      <span className="kpi-label">Average Physical Progress</span>
-                      <span className="kpi-value font-mono" style={{ fontSize: '1.35rem' }}>
-                        {executionSummary.average_progress}%
-                      </span>
-                    </div>
-                  </section>
-                )}
-              </>
-            )}
-
-            <div className="project-grid-2">
-              <section className="workspace-panel-card">
-                <div className="panel-header">
-                  <div className="panel-header-title">
-                    <Building2 size={18} />
-                    <h3>Project Metadata</h3>
-                  </div>
-                </div>
-
-                <div className="overview-details-grid">
-                  <div className="detail-item">
-                    <span className="detail-label">Target Start Date</span>
-                    <span className="detail-value font-mono">
-                      <Calendar size={13} />
-                      <span>{project.planned_start_date}</span>
-                    </span>
-                  </div>
-
-                  <div className="detail-item">
-                    <span className="detail-label">Target Finish Date</span>
-                    <span className="detail-value font-mono">
-                      <Calendar size={13} />
-                      <span>{project.planned_end_date}</span>
-                    </span>
-                  </div>
-
-                  <div className="detail-item">
-                    <span className="detail-label">Status</span>
-                    <span className="detail-value">{project.status.replace('_', ' ')}</span>
-                  </div>
-
-                  <div className="detail-item">
-                    <span className="detail-label">Created At</span>
-                    <span className="detail-value font-mono">
-                      <Clock size={13} />
-                      <span>{new Date(project.created_at).toLocaleDateString()}</span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="scope-description-box">
-                  <span className="scope-label">Project Scope &amp; Description</span>
-                  <p className="scope-text">
-                    {project.description || 'No detailed description provided.'}
-                  </p>
-                </div>
-              </section>
-
-              {/* Schedule Summary on Overview tab */}
-              <section className="workspace-panel-card">
-                <div className="panel-header">
-                  <div className="panel-header-title">
-                    <FileSpreadsheet size={18} />
-                    <h3>Schedule Baseline Summary</h3>
-                  </div>
-                  {isPlannerOwner && !scheduleStatus?.has_schedule && (
-                    <button
-                      type="button"
-                      className="btn-primary btn-sm"
-                      onClick={() => {
-                        setIsImportModalOpen(true);
-                        setImportStep(1);
-                      }}
-                    >
-                      <Upload size={14} />
-                      <span>Import Schedule</span>
-                    </button>
-                  )}
-                </div>
-
-                {scheduleStatus?.has_schedule ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                      Baseline schedule imported from <strong>{scheduleStatus.latest_import?.original_filename}</strong> on{' '}
-                      {new Date(scheduleStatus.latest_import?.imported_at).toLocaleDateString()}.
-                    </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {Object.entries(scheduleStatus.discipline_counts || {}).map(([disc, count]) => (
-                        <span key={disc} className="discipline-tag">
-                          {disc}: {count}
-                        </span>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ alignSelf: 'flex-start', marginTop: '0.5rem' }}
-                      onClick={() => setActiveTab('schedule')}
-                    >
-                      View Full Schedule Table →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="empty-team-state">
-                    <FileSpreadsheet size={32} className="empty-icon" />
-                    <p>No baseline schedule imported yet.</p>
-                    <span className="empty-subtext">
-                      {isPlannerOwner
-                        ? 'Upload Primavera P6 or MS Project CSV/XLSX export to establish L5/L6 activity baseline.'
-                        : 'No baseline schedule is available yet for field tracking.'}
-                    </span>
-                    {isPlannerOwner && (
-                      <button
-                        type="button"
-                        className="btn-primary btn-sm"
-                        style={{ marginTop: '0.75rem' }}
-                        onClick={() => {
-                          setIsImportModalOpen(true);
-                          setImportStep(1);
-                        }}
-                      >
-                        <Upload size={14} />
-                        <span>Import Schedule</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </section>
-            </div>
-          </div>
+        {/* TAB 1: REAL PROJECT CONTROL DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <DashboardTab
+            projectId={projectId}
+            token={token}
+            isPlannerOwner={isPlannerOwner}
+            assignedDiscipline={project?.assigned_discipline}
+            onSelectActivity={(actId) => handleSelectActivityById(actId)}
+            onNavigateToSchedule={() => setActiveTab('schedule')}
+          />
         )}
 
         {/* TAB 2: SCHEDULE */}
