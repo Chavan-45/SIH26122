@@ -315,3 +315,157 @@ export async function getSupervisors(token, search = '') {
     return { success: false, error: err.message || 'Unable to load supervisors' };
   }
 }
+
+/* ==========================================================================
+   SCHEDULE & ACTIVITY APIs (Phase 4)
+   ========================================================================== */
+
+/**
+ * Preview schedule baseline file import (Planner owner only).
+ */
+export async function previewSchedule(token, projectId, file) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule/preview`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const errDetail = typeof data.detail === 'string' ? data.detail : data.detail?.message || 'Schedule preview failed';
+      throw new Error(errDetail);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to preview schedule' };
+  }
+}
+
+/**
+ * Confirm and execute baseline schedule import (Planner owner only).
+ */
+export async function importSchedule(token, projectId, file, mapping) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mapping', JSON.stringify(mapping));
+
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule/import`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      let msg = 'Schedule import failed';
+      if (typeof data.detail === 'string') {
+        msg = data.detail;
+      } else if (data.detail && typeof data.detail === 'object') {
+        if (data.detail.errors && Array.isArray(data.detail.errors)) {
+          msg = data.detail.errors.join(' | ');
+        } else if (data.detail.message) {
+          msg = data.detail.message;
+        }
+      }
+      throw new Error(msg);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to import schedule' };
+  }
+}
+
+/**
+ * Get project schedule status and metadata (Authorized users).
+ */
+export async function getScheduleStatus(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch schedule status (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load schedule status' };
+  }
+}
+
+/**
+ * Get paginated activities with search and discipline/level filters (Authorized users).
+ */
+export async function getActivities(token, projectId, { page = 1, pageSize = 50, search = '', discipline = 'ALL', scheduleLevel = 'ALL' } = {}) {
+  try {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      page_size: pageSize.toString(),
+    });
+
+    if (search) queryParams.append('search', search);
+    if (discipline && discipline !== 'ALL') queryParams.append('discipline', discipline);
+    if (scheduleLevel && scheduleLevel !== 'ALL') queryParams.append('schedule_level', scheduleLevel);
+
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/activities?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch activities (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load activities' };
+  }
+}
+
+/**
+ * Get single activity details (Authorized users).
+ */
+export async function getActivity(token, projectId, activityId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/activities/${activityId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Activity not found (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load activity detail' };
+  }
+}
+

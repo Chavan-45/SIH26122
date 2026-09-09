@@ -33,6 +33,18 @@ class Project(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    activities = relationship(
+        "Activity",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    schedule_imports = relationship(
+        "ScheduleImport",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     def __repr__(self) -> str:
         return f"<Project id={self.id} code={self.project_code} name={self.name}>"
