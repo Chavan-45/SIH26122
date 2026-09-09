@@ -21,47 +21,38 @@ def verify_supervisor_discipline_authorization(
     db: Session,
 ):
     """
-    Enforce discipline-based RBAC.
-    Supervisors can ONLY update progress for activities matching their assigned engineering discipline.
-    Planners who own the project can update any activity in their project.
+    Enforce strict role & discipline-based RBAC for progress updates.
+    Field progress updates must be reported by an assigned supervisor matching the activity discipline.
+    Planners are not authorized to submit normal field execution reports.
     """
-    if user.role == "PLANNER":
-        if project.created_by_id != user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access forbidden: You do not own this project.",
-            )
-        return
-
-    if user.role == "SUPERVISOR":
-        membership = (
-            db.query(ProjectMember)
-            .filter(
-                ProjectMember.project_id == project.id,
-                ProjectMember.user_id == user.id,
-            )
-            .first()
+    if user.role != "SUPERVISOR":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Field progress updates must be reported by an assigned supervisor.",
         )
-        if not membership:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access forbidden: You are not assigned to this project.",
-            )
 
-        supervisor_discipline = membership.discipline.upper()
-        activity_discipline = (activity.discipline or "UNASSIGNED").upper()
-
-        if activity_discipline == "UNASSIGNED" or supervisor_discipline != activity_discipline:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access forbidden: As a {supervisor_discipline} supervisor, you can only report progress on {supervisor_discipline} activities. Activity '{activity.activity_code}' has discipline '{activity_discipline}'.",
-            )
-        return
-
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Access forbidden: Role not authorized for progress updates.",
+    membership = (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project.id,
+            ProjectMember.user_id == user.id,
+        )
+        .first()
     )
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: You are not assigned to this project.",
+        )
+
+    supervisor_discipline = (membership.discipline or "").strip().upper()
+    activity_discipline = (activity.discipline or "UNASSIGNED").strip().upper()
+
+    if activity_discipline == "UNASSIGNED" or supervisor_discipline != activity_discipline:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: As a {supervisor_discipline} supervisor, you can only report progress on {supervisor_discipline} activities. Activity '{activity.activity_code}' has discipline '{activity_discipline}'.",
+        )
 
 
 def process_progress_update(
@@ -121,7 +112,7 @@ def process_progress_update(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot start activity: Activity is already COMPLETED.",
             )
-        if actual_start is not None and user.role != "PLANNER":
+        if actual_start is not None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Activity '{activity.activity_code}' has already been started on {actual_start}.",
@@ -163,7 +154,7 @@ def process_progress_update(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Progress percentage must be between 1% and 99% for incremental updates.",
             )
-        if report_req.progress_percentage <= current_progress and user.role != "PLANNER":
+        if report_req.progress_percentage <= current_progress:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Progress percentage cannot regress or stay the same (Current progress: {current_progress:.0f}%, Requested: {report_req.progress_percentage:.0f}%).",

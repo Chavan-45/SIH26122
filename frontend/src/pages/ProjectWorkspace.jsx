@@ -216,7 +216,8 @@ export default function ProjectWorkspace() {
       const actions = getAvailableActions(act.execution_status, act.progress_percentage);
       if (actions.length === 0) return false;
 
-      if (isPlannerOwner) return true;
+      // Planners manage projects but do not report field progress updates
+      if (user?.role === 'PLANNER') return false;
 
       if (user?.role === 'SUPERVISOR') {
         const userDisc = project?.assigned_discipline;
@@ -224,7 +225,7 @@ export default function ProjectWorkspace() {
       }
       return false;
     },
-    [isPlannerOwner, user?.role, project?.assigned_discipline, getAvailableActions]
+    [user?.role, project?.assigned_discipline, getAvailableActions]
   );
 
   // Fetch Core Project Data & Schedule Status & Execution Summary
@@ -1117,6 +1118,20 @@ export default function ProjectWorkspace() {
                     <div className="auth-success-banner" style={{ margin: '0.25rem 0 0', padding: '0.5rem 0.75rem', fontSize: '0.775rem' }}>
                       <CheckCircle size={15} />
                       <span>Activity Completed • Execution updates are locked after completion.</span>
+                    </div>
+                  )}
+
+                  {user?.role === 'PLANNER' && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', fontStyle: 'italic', marginTop: '0.25rem' }}>
+                      <Info size={13} style={{ color: 'var(--color-text-muted)' }} />
+                      <span>Execution updates are reported by assigned field supervisors.</span>
+                    </div>
+                  )}
+
+                  {user?.role === 'SUPERVISOR' && !canReport && selectedActivity.execution_status !== 'COMPLETED' && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', fontStyle: 'italic', marginTop: '0.25rem' }}>
+                      <Info size={13} style={{ color: 'var(--color-text-muted)' }} />
+                      <span>Read-only: Execution progress can only be updated by the assigned {selectedActivity.discipline || ''} supervisor.</span>
                     </div>
                   )}
 

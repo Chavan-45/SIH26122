@@ -800,17 +800,17 @@ export default function DashboardTab({
               </div>
             ) : (
               <div className="table-responsive">
-                <table className="schedule-table">
+                <table className="dashboard-table">
                   <thead>
                     <tr>
-                      <th>Activity Code</th>
-                      <th>Activity Name</th>
-                      <th>Discipline</th>
-                      <th>Planned Finish</th>
-                      <th>Overdue Days</th>
-                      <th>Progress</th>
-                      <th>Status</th>
-                      <th>Action</th>
+                      <th className="col-code">Code</th>
+                      <th className="col-name">Activity Name</th>
+                      <th className="col-disc">Discipline</th>
+                      <th className="col-date">Finish</th>
+                      <th className="col-overdue-days">Overdue</th>
+                      <th className="col-meta">Prog</th>
+                      <th className="col-status">Status</th>
+                      <th className="col-action">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -820,43 +820,47 @@ export default function DashboardTab({
                         style={{ cursor: 'pointer' }}
                         onClick={() => onSelectActivity && onSelectActivity(act.activity_id)}
                       >
-                        <td className="font-mono" style={{ fontWeight: 600 }}>{act.activity_code}</td>
-                        <td>{act.activity_name}</td>
-                        <td>
-                          <span className="discipline-tag">{act.discipline}</span>
+                        <td className="col-code font-mono" style={{ fontWeight: 600 }}>{act.activity_code}</td>
+                        <td className="col-name">
+                          <span className="col-name-text">{act.activity_name}</span>
                         </td>
-                        <td className="font-mono">{act.planned_finish}</td>
-                        <td>
+                        <td className="col-disc">
+                          <span className="discipline-tag" style={{ fontSize: '0.675rem', padding: '0.15rem 0.4rem' }}>{act.discipline}</span>
+                        </td>
+                        <td className="col-date font-mono">{act.planned_finish}</td>
+                        <td className="col-overdue-days">
                           <span
                             className="font-mono"
                             style={{
                               fontWeight: 700,
                               color: 'var(--color-danger)',
                               backgroundColor: 'var(--color-danger-bg)',
-                              padding: '0.15rem 0.45rem',
+                              padding: '0.12rem 0.35rem',
                               borderRadius: '4px',
+                              fontSize: '0.75rem',
                             }}
                           >
-                            +{act.overdue_days} days
+                            +{act.overdue_days}d
                           </span>
                         </td>
-                        <td className="font-mono">{act.progress_percentage}%</td>
-                        <td>
-                          <span className={`status-pill ${act.execution_status.toLowerCase()}`}>
+                        <td className="col-meta font-mono">{act.progress_percentage}%</td>
+                        <td className="col-status">
+                          <span className={`status-pill ${act.execution_status.toLowerCase()}`} style={{ fontSize: '0.675rem', padding: '0.15rem 0.4rem' }}>
                             <span className="status-dot-small" />
                             <span>{act.execution_status.replace('_', ' ')}</span>
                           </span>
                         </td>
-                        <td>
+                        <td className="col-action">
                           <button
                             type="button"
                             className="btn-secondary btn-sm"
+                            style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}
                             onClick={(e) => {
                               e.stopPropagation();
                               onSelectActivity && onSelectActivity(act.activity_id);
                             }}
                           >
-                            View Detail
+                            View
                           </button>
                         </td>
                       </tr>
@@ -884,15 +888,15 @@ export default function DashboardTab({
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <table className="schedule-table" style={{ fontSize: '0.83rem' }}>
+                  <table className="dashboard-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Disc</th>
-                        <th>Finish</th>
-                        <th>Prog</th>
-                        <th>Action</th>
+                        <th className="col-code">Code</th>
+                        <th className="col-name">Activity Name</th>
+                        <th className="col-disc">Disc</th>
+                        <th className="col-date">Finish</th>
+                        <th className="col-meta">Prog</th>
+                        <th className="col-action">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -902,14 +906,16 @@ export default function DashboardTab({
                           style={{ cursor: 'pointer' }}
                           onClick={() => onSelectActivity && onSelectActivity(act.activity_id)}
                         >
-                          <td className="font-mono" style={{ fontWeight: 600 }}>{act.activity_code}</td>
-                          <td>{act.activity_name}</td>
-                          <td>
-                            <span className="discipline-tag" style={{ fontSize: '0.7rem' }}>{act.discipline}</span>
+                          <td className="col-code font-mono" style={{ fontWeight: 600 }}>{act.activity_code}</td>
+                          <td className="col-name">
+                            <span className="col-name-text">{act.activity_name}</span>
                           </td>
-                          <td className="font-mono">{act.planned_finish}</td>
-                          <td className="font-mono">{act.progress_percentage}%</td>
-                          <td>
+                          <td className="col-disc">
+                            <span className="discipline-tag" style={{ fontSize: '0.675rem', padding: '0.15rem 0.35rem' }}>{act.discipline}</span>
+                          </td>
+                          <td className="col-date font-mono">{act.planned_finish}</td>
+                          <td className="col-meta font-mono">{act.progress_percentage}%</td>
+                          <td className="col-action">
                             <button
                               type="button"
                               className="btn-secondary btn-sm"
@@ -945,15 +951,15 @@ export default function DashboardTab({
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <table className="schedule-table" style={{ fontSize: '0.83rem' }}>
+                  <table className="dashboard-table">
                     <thead>
                       <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Disc</th>
-                        <th>Planned Finish</th>
-                        <th>Due</th>
-                        <th>Action</th>
+                        <th className="col-code">Code</th>
+                        <th className="col-name">Activity Name</th>
+                        <th className="col-disc">Disc</th>
+                        <th className="col-date">Finish</th>
+                        <th className="col-meta">Due</th>
+                        <th className="col-action">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -963,28 +969,30 @@ export default function DashboardTab({
                           style={{ cursor: 'pointer' }}
                           onClick={() => onSelectActivity && onSelectActivity(act.activity_id)}
                         >
-                          <td className="font-mono" style={{ fontWeight: 600 }}>{act.activity_code}</td>
-                          <td>{act.activity_name}</td>
-                          <td>
-                            <span className="discipline-tag" style={{ fontSize: '0.7rem' }}>{act.discipline}</span>
+                          <td className="col-code font-mono" style={{ fontWeight: 600 }}>{act.activity_code}</td>
+                          <td className="col-name">
+                            <span className="col-name-text">{act.activity_name}</span>
                           </td>
-                          <td className="font-mono">{act.planned_finish}</td>
-                          <td>
+                          <td className="col-disc">
+                            <span className="discipline-tag" style={{ fontSize: '0.675rem', padding: '0.15rem 0.35rem' }}>{act.discipline}</span>
+                          </td>
+                          <td className="col-date font-mono">{act.planned_finish}</td>
+                          <td className="col-meta">
                             <span
                               className="font-mono"
                               style={{
                                 fontWeight: 600,
                                 color: 'var(--color-warning-text)',
                                 backgroundColor: 'var(--color-warning-bg)',
-                                padding: '0.1rem 0.35rem',
+                                padding: '0.1rem 0.3rem',
                                 borderRadius: '4px',
-                                fontSize: '0.75rem',
+                                fontSize: '0.725rem',
                               }}
                             >
                               {act.days_until_finish === 0 ? 'Today' : `In ${act.days_until_finish}d`}
                             </span>
                           </td>
-                          <td>
+                          <td className="col-action">
                             <button
                               type="button"
                               className="btn-secondary btn-sm"
@@ -1004,6 +1012,7 @@ export default function DashboardTab({
                 </div>
               )}
             </section>
+
           </div>
 
           {/* 8. RECENT SITE UPDATES FEED */}
