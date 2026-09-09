@@ -6,29 +6,22 @@
 
 ---
 
-## Current Status: Phase 6 (Real Project Dashboard & Schedule Health)
+### Current Status: Phase 7 (Project-Specific AI Assistant)
 
 The platform currently includes:
 - **Authentication & Roles**: Secure bcrypt password hashing, JWT Bearer tokens, and strict role segregation between **Lead Planners** and **Field Supervisors**.
 - **Project Baseline Management**: Planners can create, view, and update infrastructure projects with codes, planned start/finish dates, and lifecycle statuses.
 - **Team Allocation & Disciplines**: Planners can assign registered Supervisors to specific projects with discipline mappings (`CIVIL`, `PIPING`, `ELECTRICAL`, `MECHANICAL`, `INSTRUMENTATION`, `HSE`, `OTHER`).
 - **L5/L6 Baseline Schedule Import**: Planners can upload structured project schedule exports (.csv and .xlsx) from Primavera P6 or MS Project.
-- **Preview & Auto Column Mapping**: Interactive 2-step import wizard that auto-detects column headers using case-insensitive alias matching (e.g. `Activity ID`, `Task Name`, `Start Date`, `Baseline Finish`), validates dates (`finish >= start`), and previews rows before commit.
-- **Transactional Database Safety**: Atomic single-transaction database commit ensures that if any row has validation errors or duplicate activity codes, 0 activities are inserted.
-- **Structured Activity Database**: Activities stored in the `activities` table with unique constraint `(project_id, activity_code)` and audit logs in `schedule_imports`.
-- **Filtered Schedule Workspace & Read-Only Access**: Full schedule workspace with search, discipline filter, schedule level filter (L5, L6), pagination, and activity detail drawer. Supervisors have strict read-only access to baseline schedules.
-- **Actual Execution & Field Progress Tracking (Phase 5)**: Field execution reporting via `ActivityExecution` and append-only audit trail in `ProgressUpdate`. State machine controls valid status transitions (`START`, `PROGRESS`, `COMPLETE`, `ON_HOLD`, `RESUME`). Completed activities are locked. Strict supervisor discipline authorization ensures supervisors can only report progress on their assigned engineering discipline.
-- **Timezone Configuration & Reusable Date Helpers (Phase 6)**: Configured `APP_TIMEZONE=Asia/Kolkata` via `backend/app/core/datetime_utils.py` (`get_today_date()`, `get_now_datetime()`) ensuring consistent timezone-aware calculations for today, overdue detection, 7-day deadlines, and finish variances.
-- **100% Database-Derived Real Project Control Dashboard (Phase 6)**: Comprehensive, real-time project control dashboard consuming live database data from `Project`, `Activity`, `ActivityExecution`, `ProgressUpdate`, `ProjectMember`, and `User`. No mock data, no fake metrics.
-- **Activity-Weighted Physical Progress**: Overall project physical progress is explicitly calculated as `sum(progress_percentage for every activity) / total_activities` (activities missing execution record count as 0%). UI clearly displays *"Activity-weighted physical progress"*.
-- **Overdue Activities & Carryover**: An activity is defined as overdue when `planned_finish < today` AND `execution_status != COMPLETED`. Overdue days calculated as `today - planned_finish`. Overdue work is displayed in a dedicated high-priority section separate from today's work.
-- **Completed Late Variance**: Completed activities (`execution_status == COMPLETED`) with `actual_finish > planned_finish` are tracked as completed late with positive `finish_variance_days = actual_finish - planned_finish`.
-- **Today's Scheduled Work & 7-Day Upcoming Deadlines**: Today's work is defined as `planned_start <= today <= planned_finish` AND `execution_status != COMPLETED`. Upcoming deadlines window captures uncompleted activities with `today <= planned_finish <= today + 7 days`.
-- **Discipline Progress Breakdown**: Calculates activity-weighted progress and status counts for each discipline (`CIVIL`, `PIPING`, `ELECTRICAL`, `MECHANICAL`, `INSTRUMENTATION`, `HSE`, `UNASSIGNED`).
-- **Baseline vs Actual Adherence**: Schedule-adherence metrics comparing `scheduled_to_have_started` vs `actually_started`, and `scheduled_to_have_finished` vs `actually_completed`.
-- **Role-Aware Dashboard Behavior**: Planners see full project-wide dashboard analytics; Supervisors see overall project summary plus a prominent **MY DISCIPLINE** section with discipline-scoped progress, today's work, overdue carryover, and upcoming deadlines.
-- **Click-Through & SPA Experience**: Clicking activity items opens the existing Activity Detail drawer. Silent 30-second background polling and manual refresh action keep the dashboard updated without page flashes.
-- **UI & Design System**: Approved Oil & Infrastructure Industrial Light Theme.
+- **Preview & Auto Column Mapping**: Interactive 2-step import wizard that auto-detects column headers using case-insensitive alias matching, validates dates (`finish >= start`), and previews rows before commit.
+- **Transactional Database Safety**: Atomic single-transaction database commit ensures 0 partial writes.
+- **Filtered Schedule Workspace & Read-Only Access**: Full schedule workspace with search, discipline filter, schedule level filter (L5, L6), pagination, and activity detail drawer.
+- **Actual Execution & Field Progress Tracking**: Field execution reporting via `ActivityExecution` and append-only audit trail in `ProgressUpdate`. State machine controls valid status transitions (`START`, `PROGRESS`, `COMPLETE`, `ON_HOLD`, `RESUME`). Strictly enforced supervisor discipline authorization.
+- **100% Database-Derived Real Project Control Dashboard**: Real-time project control dashboard metrics derived directly from `Project`, `Activity`, `ActivityExecution`, `ProgressUpdate`, `ProjectMember`, and `User`.
+- **Project-Specific AI Assistant (Phase 7)**: Real-time, project-scoped operational assistant powered by Google Gemini (`google-genai` SDK v2.22.0) executing 10 safe server-bound Python database tools.
+- **Strict Read-Only & Project Scoping**: AI operates in 100% read-only mode. Natural language execution reports are politely redirected to the Report Progress workflow. General knowledge questions (e.g. "capital of France") are refused with a project-scoping message.
+- **Role & Discipline Intelligence**: Supervisors asking "my work" or "overdue" receive answers scoped to their assigned discipline. Planners receive project-wide operational intelligence.
+- **Session History & UI Integration**: `AIConversation` and `AIMessage` models persist chat history per user and project. Frontend includes a dedicated **Project AI** tab, conversation sidebar, quick prompt chips, database tools expander, and clickable activity code tags (`ACT-CIV-001`) that trigger the Activity Detail drawer in a single click.
 
 ---
 
@@ -162,6 +155,15 @@ SIH26122/
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
 | `GET` | `/api/projects/{id}/dashboard` | Project members | Get 100% database-derived project control dashboard metrics |
+
+### Project-Specific AI Assistant (Phase 7)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/projects/{id}/ai/chat` | Authorized Project Members | Operational query endpoint with Gemini tool calling |
+| `GET` | `/api/projects/{id}/ai/conversations` | Authorized Project Members | List user's AI conversations for current project |
+| `GET` | `/api/projects/{id}/ai/conversations/{cid}` | Authorized Project Members | Get detailed message history for a conversation |
+| `DELETE` | `/api/projects/{id}/ai/conversations/{cid}` | Authorized Project Members | Delete an AI conversation session |
+
 
 ---
 

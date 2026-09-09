@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database.database import Base, engine
 import app.models  # Import all models to register on Base.metadata
-from app.routers import auth, test_roles, projects, users, schedule, execution, dashboard
+from app.routers import auth, test_roles, projects, users, schedule, execution, dashboard, ai_chat
 
 
 
@@ -40,6 +40,7 @@ app.include_router(users.router, prefix="/api")
 app.include_router(schedule.router, prefix="/api")
 app.include_router(execution.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
+app.include_router(ai_chat.router, prefix="/api")
 
 
 

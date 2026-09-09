@@ -5,7 +5,8 @@ from app.models.activity import Activity
 from app.models.schedule_import import ScheduleImport
 from app.models.activity_execution import ActivityExecution
 from app.models.progress_update import ProgressUpdate
+from app.models.ai_chat import AIConversation, AIMessage
 
-__all__ = ["User", "Project", "ProjectMember", "Activity", "ScheduleImport", "ActivityExecution", "ProgressUpdate"]
+__all__ = ["User", "Project", "ProjectMember", "Activity", "ScheduleImport", "ActivityExecution", "ProgressUpdate", "AIConversation", "AIMessage"]
 
 

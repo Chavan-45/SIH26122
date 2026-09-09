@@ -20,6 +20,7 @@ import {
 } from '../services/api';
 import Navbar from '../components/Navbar';
 import DashboardTab from '../components/DashboardTab';
+import ProjectAITab from '../components/ProjectAITab';
 import {
   Building2,
   Calendar,
@@ -55,6 +56,7 @@ import {
   TrendingUp,
   BarChart3,
   History,
+  Bot,
 } from 'lucide-react';
 
 
@@ -718,6 +720,17 @@ export default function ProjectWorkspace() {
           </button>
           <button
             type="button"
+            className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ai')}
+          >
+            <Bot size={16} />
+            <span>Project AI</span>
+            <span className="level-badge font-mono" style={{ marginLeft: '0.25rem', background: '#0284c7', color: '#fff' }}>
+              READ-ONLY
+            </span>
+          </button>
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
             onClick={() => setActiveTab('team')}
           >
@@ -1257,6 +1270,27 @@ export default function ProjectWorkspace() {
           </div>
         );
       })()}
+
+        {/* TAB 3: PROJECT AI ASSISTANT (Phase 7) */}
+        {activeTab === 'ai' && (
+          <ProjectAITab
+            token={token}
+            project={project}
+            user={user}
+            assignedDiscipline={project?.assigned_discipline}
+            onSelectActivityCode={async (actCode) => {
+              try {
+                const res = await getActivities(token, projectId, { search: actCode, pageSize: 1 });
+                if (res.success && res.data && res.data.items && res.data.items.length > 0) {
+                  const fullAct = await getActivity(token, projectId, res.data.items[0].id);
+                  if (fullAct.success && fullAct.data) setSelectedActivity(fullAct.data);
+                }
+              } catch (e) {
+                console.error('Failed to select activity by code', e);
+              }
+            }}
+          />
+        )}
 
       {/* ====================================================================
           MULTI-STEP SCHEDULE IMPORT MODAL (Planner only)

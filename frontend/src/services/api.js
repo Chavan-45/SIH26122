@@ -604,4 +604,110 @@ export async function getProjectDashboard(token, projectId) {
   }
 }
 
+/* ==========================================================================
+   PROJECT AI ASSISTANT APIs (Phase 7)
+   ========================================================================== */
+
+/**
+ * Send an operational query to the Project AI Assistant.
+ */
+export async function sendAIChatMessage(token, projectId, { conversationId = null, prompt }) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        conversation_id: conversationId,
+        prompt,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `AI Chat request failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to connect to AI Assistant' };
+  }
+}
+
+/**
+ * Retrieve list of AI conversation sessions for current user in project.
+ */
+export async function getAIConversations(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/conversations`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch AI conversations (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load AI conversations' };
+  }
+}
+
+/**
+ * Get message history for a specific AI conversation session.
+ */
+export async function getAIConversation(token, projectId, conversationId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/conversations/${conversationId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch AI conversation history (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load AI conversation history' };
+  }
+}
+
+/**
+ * Delete an AI conversation session and its message history.
+ */
+export async function deleteAIConversation(token, projectId, conversationId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/conversations/${conversationId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to delete conversation (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to delete conversation' };
+  }
+}
+
+
 

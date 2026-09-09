@@ -1,5 +1,5 @@
-from app.routers import auth, test_roles, projects, users, schedule, execution, dashboard
+from app.routers import auth, test_roles, projects, users, schedule, execution, dashboard, ai_chat
 
-__all__ = ["auth", "test_roles", "projects", "users", "schedule", "execution", "dashboard"]
+__all__ = ["auth", "test_roles", "projects", "users", "schedule", "execution", "dashboard", "ai_chat"]
 
 
