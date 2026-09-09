@@ -2828,3 +2828,600 @@ select.form-input {
   border-color: var(--color-accent);
   color: var(--color-accent-hover);
 }
+
+/* ==========================================================================
+   Phase 8 Natural-Language Proposal Card & Draft Component Styles
+   ========================================================================== */
+
+/* Main Proposal Card Container */
+.ai-draft-card {
+  margin-top: 0.75rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 2px 8px rgba(23, 50, 77, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Proposal Header Bar */
+.ai-draft-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 0.6rem;
+}
+
+.ai-draft-header-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Confidence Badges */
+.ai-confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.675rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ai-confidence-badge.high {
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #15803D;
+}
+
+.ai-confidence-badge.medium {
+  background-color: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #B45309;
+}
+
+.ai-confidence-badge.low {
+  background-color: #FFF1F2;
+  border: 1px solid #FECDD3;
+  color: #BE123C;
+}
+
+.ai-confidence-badge.manual {
+  background-color: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
+}
+
+/* Error Banner inside Card */
+.ai-draft-error-alert {
+  padding: 0.5rem 0.75rem;
+  background-color: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  border-radius: 6px;
+  color: var(--color-danger-text);
+  font-size: 0.775rem;
+  font-weight: 600;
+}
+
+/* Activity Identity Box */
+.ai-draft-activity-box {
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ai-draft-activity-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ai-draft-code-tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-border-strong);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.ai-draft-discipline-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-accent-hover);
+  background-color: var(--color-accent-light);
+  border: 1px solid rgba(233, 122, 31, 0.25);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.ai-draft-activity-name {
+  font-size: 0.925rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+/* 2-Column Detail Grid */
+.ai-draft-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.grid-item.full-width {
+  grid-column: span 2 / span 2;
+}
+
+.grid-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.grid-value {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.grid-value.action-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-accent-hover);
+  text-transform: uppercase;
+  font-size: 0.775rem;
+}
+
+.grid-value.highlight-emerald {
+  color: #15803D;
+  font-weight: 800;
+}
+
+/* Progress Visualizer Bar */
+.ai-draft-progress-bar-container {
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.progress-bar-labels {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-border);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill-current {
+  height: 100%;
+  background-color: var(--color-text-muted);
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.progress-fill-proposed {
+  height: 100%;
+  background-color: var(--color-success);
+  position: absolute;
+  top: 0;
+}
+
+/* Unmatched Box */
+.ai-draft-unmatched-box {
+  background-color: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  border-radius: 6px;
+  padding: 0.85rem;
+  color: var(--color-danger-text);
+  font-size: 0.8rem;
+}
+
+.unmatched-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.unmatched-report-text {
+  font-size: 0.75rem;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+/* Alternative Candidates Section */
+.ai-draft-alternatives-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.alternatives-label {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.alternatives-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.btn-alternative-candidate {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-alternative-candidate:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-light);
+}
+
+.alt-code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.alt-name {
+  color: var(--color-text-primary);
+}
+
+.alt-conf {
+  font-size: 0.675rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+/* Choose Activity Picker Panel */
+.ai-draft-picker-panel {
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.picker-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.picker-search-icon {
+  position: absolute;
+  left: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+.picker-search-input {
+  width: 100%;
+  padding: 0.45rem 0.65rem 0.45rem 2rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.775rem;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.picker-search-input:focus {
+  border-color: var(--color-primary);
+}
+
+.picker-candidate-list {
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.picker-candidate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.65rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.picker-candidate-row:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.candidate-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.candidate-name {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.picker-loading-text, .picker-empty-text {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: 0.5rem;
+  text-align: center;
+}
+
+/* Proposal Action Buttons */
+.ai-draft-actions-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.btn-draft-confirm {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 1px 2px rgba(23, 50, 77, 0.1);
+}
+
+.btn-draft-confirm:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.btn-draft-confirm:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-draft-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  font-weight: 600;
+  font-size: 0.775rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.btn-draft-secondary:hover:not(:disabled) {
+  background-color: var(--color-primary-light);
+}
+
+.btn-draft-warning {
+  background-color: var(--color-warning);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 0.775rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-draft-warning:hover:not(:disabled) {
+  background-color: #B47818;
+}
+
+.btn-draft-cancel {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 0.775rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+
+.btn-draft-cancel:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+}
+
+/* Post-Confirmation & Rejection States */
+.ai-draft-card-confirmed {
+  margin-top: 0.75rem;
+  background-color: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.confirmed-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.confirmed-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: var(--color-success-text);
+}
+
+.confirmed-source-tag {
+  font-family: var(--font-mono);
+  font-size: 0.675rem;
+  font-weight: 700;
+  background-color: #D1FAE5;
+  color: #065F46;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.confirmed-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.confirmed-activity-name {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.confirmed-details-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+}
+
+.meta-dot {
+  color: var(--color-border-strong);
+}
+
+.ai-draft-card-rejected {
+  margin-top: 0.75rem;
+  background-color: #F8FAFC;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.775rem;
+}
+
+.rejected-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rejected-card-desc {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.ai-draft-card-review {
+  margin-top: 0.75rem;
+  background-color: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.775rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.review-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Responsive Grid for Card */
+@media (max-width: 640px) {
+  .ai-draft-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .grid-item.full-width {
+    grid-column: span 1 / span 1;
+  }
+  
+  .btn-draft-cancel {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .ai-draft-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .btn-draft-confirm, .btn-draft-secondary, .btn-draft-warning {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

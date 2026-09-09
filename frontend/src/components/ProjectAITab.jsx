@@ -10,17 +10,80 @@ import {
   ExternalLink,
   X,
   Database,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  HelpCircle,
+  ChevronDown,
+  Search,
+  Settings,
+  ArrowRight,
+  Check,
+  RefreshCw,
   Shield,
-  Sparkles,
 } from 'lucide-react';
 import {
   sendAIChatMessage,
   getAIConversations,
   getAIConversation,
   deleteAIConversation,
+  confirmAIDraft,
+  cancelAIDraft,
+  selectAIDraftActivity,
+  flagAIDraftPlannerReview,
+  getActivities,
 } from '../services/api';
 
-export default function ProjectAITab({ token, project, user, assignedDiscipline, onSelectActivityCode }) {
+/**
+ * Error Boundary component to prevent Project AI render crashes from blanking out the app
+ */
+class ProjectAIErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Project AI Component Error Boundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2.5rem', textAlign: 'center', backgroundColor: '#FFFFFF', border: '1px solid #DDE2E6', borderRadius: '10px', margin: '1rem 0' }}>
+          <Bot size={36} style={{ margin: '0 auto 0.75rem', color: '#17324D' }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#17324D', marginBottom: '0.5rem' }}>Project AI Workspace</h3>
+          <p style={{ fontSize: '0.85rem', color: '#5E6B75', maxWidth: '460px', margin: '0 auto 1.25rem' }}>
+            {this.state.error?.message || 'An unexpected rendering issue occurred while loading Project AI.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{ padding: '0.55rem 1.25rem', backgroundColor: '#17324D', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Retry Loading AI Tab
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default function ProjectAITab(props) {
+  return (
+    <ProjectAIErrorBoundary>
+      <ProjectAITabInner {...props} />
+    </ProjectAIErrorBoundary>
+  );
+}
+
+function ProjectAITabInner({ token, project, user, assignedDiscipline, onSelectActivityCode }) {
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -36,14 +99,17 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
   };
 
   useEffect(() => {
-    loadConversations();
-  }, [project.id]);
+    if (project?.id) {
+      loadConversations();
+    }
+  }, [project?.id]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
 
   const loadConversations = async () => {
+    if (!project?.id) return;
     setFetchingHistory(true);
     const res = await getAIConversations(token, project.id);
     setFetchingHistory(false);
@@ -53,7 +119,7 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
   };
 
   const handleSelectConversation = async (convId) => {
-    if (convId === activeConversationId) return;
+    if (!project?.id || convId === activeConversationId) return;
     setActiveConversationId(convId);
     setErrorMsg(null);
     setLoading(true);
@@ -77,6 +143,7 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
 
   const handleDeleteConversation = async (e, convId) => {
     e.stopPropagation();
+    if (!project?.id) return;
     if (!window.confirm('Are you sure you want to delete this chat session?')) return;
 
     const res = await deleteAIConversation(token, project.id, convId);
@@ -92,7 +159,7 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
 
   const handleSendMessage = async (customPrompt = null) => {
     const textToSend = customPrompt || promptInput.trim();
-    if (!textToSend || loading) return;
+    if (!textToSend || loading || !project?.id) return;
 
     setErrorMsg(null);
     if (!customPrompt) setPromptInput('');
@@ -126,6 +193,7 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
         content: res.data.assistant_message.content,
         created_at: res.data.assistant_message.created_at,
         metadata_json: JSON.stringify(res.data.sources || []),
+        draft: res.data.draft || null,
       };
 
       setMessages((prev) => {
@@ -138,6 +206,7 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
   };
 
   const renderTextWithActivityChips = (text) => {
+    if (!text) return null;
     const codeRegex = /\b(ACT-[A-Za-z0-9_\-]+|[A-Za-z]{2,5}-\d{1,5})\b/gi;
     const parts = text.split(codeRegex);
 
@@ -238,21 +307,28 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
           <div className="project-ai-header-titles">
             <div className="project-ai-title-row">
               <h2 className="project-ai-main-heading">Project AI</h2>
-              <span className="project-ai-project-name">— {project.name}</span>
+              <span className="project-ai-project-name">— {project?.name || 'Infrastructure Project'}</span>
               <div className="project-ai-badge-group">
                 <span className="ai-badge ai-badge-blue">
                   PROJECT SCOPED
                 </span>
-                <span className="ai-badge ai-badge-amber">
-                  <Lock size={10} />
-                  READ ONLY
-                </span>
+                {user?.role === 'SUPERVISOR' ? (
+                  <span className="ai-badge ai-badge-emerald">
+                    <Shield size={10} />
+                    CONFIRMATION REQUIRED
+                  </span>
+                ) : (
+                  <span className="ai-badge ai-badge-amber">
+                    <Lock size={10} />
+                    READ ONLY
+                  </span>
+                )}
               </div>
             </div>
             <div className="project-ai-meta-row">
-              <span>Project: <strong className="font-mono">{project.project_code}</strong></span>
+              <span>Project: <strong className="font-mono">{project?.project_code || ''}</strong></span>
               <span className="meta-separator">•</span>
-              <span>Role: <strong>{user.role}</strong></span>
+              <span>Role: <strong>{user?.role || 'USER'}</strong></span>
               {assignedDiscipline && (
                 <>
                   <span className="meta-separator">•</span>
@@ -339,7 +415,7 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
                   </div>
                   <h3 className="empty-heading">Project Operational Intelligence</h3>
                   <p className="empty-description">
-                    Ask operational questions about baseline schedules, assigned team members, site progress, overdue activities, or discipline status. All data is derived strictly from this project's database.
+                    Ask operational questions about baseline schedules, assigned team members, site progress, overdue activities, or discipline status. Supervisors can also report natural language execution updates.
                   </p>
 
                   <div className="empty-chips-grid">
@@ -385,11 +461,29 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
                           {isUser ? (
                             <p className="user-message-text">{msg.content}</p>
                           ) : (
-                            renderAssistantMarkdown(msg.content)
+                            <>
+                              {renderAssistantMarkdown(msg.content)}
+                              {msg.draft && (
+                                <AIDraftConfirmationCard
+                                  token={token}
+                                  projectId={project?.id}
+                                  initialDraft={msg.draft}
+                                  user={user}
+                                  assignedDiscipline={assignedDiscipline}
+                                  onDraftUpdated={(updatedDraft) => {
+                                    setMessages((prev) =>
+                                      prev.map((m) =>
+                                        m.id === msg.id ? { ...m, draft: updatedDraft } : m
+                                      )
+                                    );
+                                  }}
+                                />
+                              )}
+                            </>
                           )}
                         </div>
 
-                        {!isUser && sources && sources.length > 0 && (
+                        {!isUser && sources && sources.length > 0 && !msg.draft && (
                           <details className="tools-disclosure">
                             <summary className="tools-disclosure-summary">
                               <Database size={11} className="inline mr-1 opacity-70" />
@@ -415,7 +509,7 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
                 <div className="chat-message-row assistant-row">
                   <div className="chat-bubble assistant-bubble loading-bubble">
                     <div className="loading-dot" />
-                    <span>Retrieving live project data & generating response...</span>
+                    <span>Analyzing report &amp; matching schedule activity...</span>
                   </div>
                 </div>
               )}
@@ -438,8 +532,8 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
                   value={promptInput}
                   onChange={(e) => setPromptInput(e.target.value)}
                   placeholder={
-                    assignedDiscipline
-                      ? `Ask operational AI assistant (${assignedDiscipline} discipline scoped)...`
+                    user?.role === 'SUPERVISOR'
+                      ? `Report site execution (e.g., 'Started foundation concreting today') or ask AI...`
                       : 'Ask operational AI assistant (project-wide)...'
                   }
                   disabled={loading}
@@ -462,5 +556,434 @@ export default function ProjectAITab({ token, project, user, assignedDiscipline,
   );
 }
 
+/**
+ * Phase 8 AI Draft Confirmation Card Component (Polished Enterprise UI)
+ */
+function AIDraftConfirmationCard({ token, projectId, initialDraft, user, assignedDiscipline, onDraftUpdated }) {
+  const [draft, setDraft] = useState(initialDraft);
+  const [processing, setProcessing] = useState(false);
+  const [cardError, setCardError] = useState(null);
+  const [showActivityPicker, setShowActivityPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerActivities, setPickerActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
 
+  useEffect(() => {
+    setDraft(initialDraft);
+  }, [initialDraft]);
 
+  if (!draft) return null;
+
+  const handleConfirm = async () => {
+    if (processing || !projectId || draft.status !== 'PENDING') return;
+    setProcessing(true);
+    setCardError(null);
+
+    const res = await confirmAIDraft(token, projectId, draft.id);
+    setProcessing(false);
+
+    if (res.success && res.data) {
+      setDraft(res.data);
+      if (onDraftUpdated) onDraftUpdated(res.data);
+    } else {
+      setCardError(res.error || 'Failed to confirm progress update');
+    }
+  };
+
+  const handleCancel = async () => {
+    if (processing || !projectId || draft.status !== 'PENDING') return;
+    setProcessing(true);
+    setCardError(null);
+
+    const res = await cancelAIDraft(token, projectId, draft.id);
+    setProcessing(false);
+
+    if (res.success && res.data) {
+      setDraft(res.data);
+      if (onDraftUpdated) onDraftUpdated(res.data);
+    } else {
+      setCardError(res.error || 'Failed to cancel draft');
+    }
+  };
+
+  const handleFlagReview = async () => {
+    if (processing || !projectId) return;
+    setProcessing(true);
+
+    const res = await flagAIDraftPlannerReview(token, projectId, draft.id);
+    setProcessing(false);
+
+    if (res.success && res.data) {
+      setDraft(res.data);
+      if (onDraftUpdated) onDraftUpdated(res.data);
+    }
+  };
+
+  const handleSelectActivity = async (actId) => {
+    if (!projectId) return;
+    setProcessing(true);
+    setCardError(null);
+
+    const res = await selectAIDraftActivity(token, projectId, draft.id, actId);
+    setProcessing(false);
+    setShowActivityPicker(false);
+
+    if (res.success && res.data) {
+      setDraft(res.data);
+      if (onDraftUpdated) onDraftUpdated(res.data);
+    } else {
+      setCardError(res.error || 'Failed to link activity');
+    }
+  };
+
+  const loadPickerActivities = async (searchVal = '') => {
+    if (!projectId) return;
+    setLoadingActivities(true);
+    const res = await getActivities(token, projectId, {
+      page: 1,
+      pageSize: 20,
+      search: searchVal,
+      discipline: assignedDiscipline || 'ALL',
+    });
+    setLoadingActivities(false);
+    if (res.success) {
+      setPickerActivities(res.data.items || []);
+    }
+  };
+
+  const togglePicker = () => {
+    if (!showActivityPicker) {
+      loadPickerActivities();
+    }
+    setShowActivityPicker(!showActivityPicker);
+  };
+
+  // Confidence Badge Rendering
+  const renderConfidenceBadge = () => {
+    if (draft.match_status === 'MANUALLY_SELECTED') {
+      return (
+        <span className="ai-confidence-badge manual">
+          <Check size={11} />
+          MANUALLY SELECTED
+        </span>
+      );
+    }
+    const confPct = draft.match_confidence !== null && draft.match_confidence !== undefined ? Math.round(draft.match_confidence * 100) : null;
+    if (draft.match_status === 'MATCHED_HIGH') {
+      return (
+        <span className="ai-confidence-badge high">
+          <CheckCircle size={11} />
+          {confPct ? `${confPct}% HIGH CONFIDENCE` : 'HIGH CONFIDENCE'}
+        </span>
+      );
+    }
+    if (draft.match_status === 'MATCHED_MEDIUM') {
+      return (
+        <span className="ai-confidence-badge medium">
+          <AlertTriangle size={11} />
+          {confPct ? `${confPct}% MEDIUM` : 'MEDIUM CONFIDENCE'}
+        </span>
+      );
+    }
+    return (
+      <span className="ai-confidence-badge low">
+        <HelpCircle size={11} />
+        UNMATCHED ACTIVITY
+      </span>
+    );
+  };
+
+  // State: CONFIRMED
+  if (draft.status === 'CONFIRMED') {
+    return (
+      <div className="ai-draft-card-confirmed">
+        <div className="confirmed-card-header">
+          <div className="confirmed-card-title">
+            <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+            <span>✓ Progress Updated</span>
+          </div>
+          <span className="confirmed-source-tag">Source: AI Chat</span>
+        </div>
+        <div className="confirmed-activity-row">
+          <span className="ai-draft-code-tag">{draft.matched_activity_code}</span>
+          <span className="confirmed-activity-name">{draft.matched_activity_name}</span>
+        </div>
+        <div className="confirmed-details-row">
+          <span>Action: <strong className="uppercase font-semibold">{draft.update_type}</strong></span>
+          <span className="meta-dot">•</span>
+          <span>Progress: <strong className="text-emerald-700 font-bold">{draft.progress_percentage ?? 100}%</strong></span>
+          <span className="meta-dot">•</span>
+          <span>Status: <strong>{draft.current_status || 'IN_PROGRESS'}</strong></span>
+        </div>
+      </div>
+    );
+  }
+
+  // State: REJECTED
+  if (draft.status === 'REJECTED') {
+    return (
+      <div className="ai-draft-card-rejected">
+        <div className="rejected-card-header">
+          <XCircle size={14} className="text-slate-500 flex-shrink-0" />
+          <span className="font-semibold text-slate-700">Progress proposal cancelled</span>
+        </div>
+        <div className="rejected-card-desc">No database execution data was changed.</div>
+      </div>
+    );
+  }
+
+  // State: NEEDS_PLANNER_REVIEW
+  if (draft.status === 'NEEDS_PLANNER_REVIEW') {
+    return (
+      <div className="ai-draft-card-review">
+        <div className="review-card-header">
+          <AlertTriangle size={14} className="text-amber-600 flex-shrink-0" />
+          <span className="font-semibold text-amber-900">Flagged for Planner Review</span>
+        </div>
+        <div className="review-card-text">Original Report: "{draft.original_text}"</div>
+        <div className="review-card-sub text-amber-700">Unmatched activity preserved for Planner inspection.</div>
+      </div>
+    );
+  }
+
+  // Active Proposal Card (PENDING)
+  const currentProgVal = draft.current_progress ?? 0;
+
+  // Derive proposed progress deterministically with safe fallbacks
+  let proposedProgVal = currentProgVal;
+  if (draft.proposed_progress !== null && draft.proposed_progress !== undefined) {
+    proposedProgVal = draft.proposed_progress;
+  } else if (draft.update_type === 'START') {
+    proposedProgVal = (draft.progress_percentage !== null && draft.progress_percentage !== undefined && draft.progress_percentage > 0) ? draft.progress_percentage : currentProgVal;
+  } else if (draft.update_type === 'PROGRESS') {
+    proposedProgVal = draft.progress_percentage ?? currentProgVal;
+  } else if (draft.update_type === 'COMPLETE') {
+    proposedProgVal = 100;
+  } else if (draft.update_type === 'ON_HOLD' || draft.update_type === 'RESUME') {
+    proposedProgVal = currentProgVal;
+  }
+
+  // Derive proposed status deterministically with safe fallbacks
+  let proposedStatusVal = draft.current_status || 'NOT_STARTED';
+  if (draft.proposed_status) {
+    proposedStatusVal = draft.proposed_status;
+  } else if (draft.update_type === 'START') {
+    proposedStatusVal = 'IN_PROGRESS';
+  } else if (draft.update_type === 'PROGRESS') {
+    proposedStatusVal = 'IN_PROGRESS';
+  } else if (draft.update_type === 'COMPLETE') {
+    proposedStatusVal = 'COMPLETED';
+  } else if (draft.update_type === 'ON_HOLD') {
+    proposedStatusVal = 'ON_HOLD';
+  } else if (draft.update_type === 'RESUME') {
+    proposedStatusVal = 'IN_PROGRESS';
+  }
+
+  return (
+    <div className="ai-draft-card">
+      {/* Header Bar */}
+      <div className="ai-draft-header">
+        <div className="ai-draft-header-title">
+          <Settings size={14} className="text-slate-500" />
+          <span>Progress Update Detected</span>
+        </div>
+        {renderConfidenceBadge()}
+      </div>
+
+      {cardError && (
+        <div className="ai-draft-error-alert">
+          {cardError}
+        </div>
+      )}
+
+      {/* Activity Identity Box */}
+      {draft.matched_activity_code ? (
+        <div className="ai-draft-activity-box">
+          <div className="ai-draft-activity-identity">
+            <span className="ai-draft-code-tag">{draft.matched_activity_code}</span>
+            {draft.matched_discipline && (
+              <span className="ai-draft-discipline-tag">{draft.matched_discipline}</span>
+            )}
+          </div>
+          <h4 className="ai-draft-activity-name">{draft.matched_activity_name}</h4>
+
+          {/* 2-Column Detail Grid */}
+          <div className="ai-draft-detail-grid">
+            <div className="grid-item">
+              <span className="grid-label">Action</span>
+              <span className="grid-value action-badge">{draft.update_type}</span>
+            </div>
+            <div className="grid-item">
+              <span className="grid-label">Reported Date</span>
+              <span className="grid-value">{draft.reported_date}</span>
+            </div>
+            <div className="grid-item">
+              <span className="grid-label">Current Progress</span>
+              <span className="grid-value">{currentProgVal}%</span>
+            </div>
+            <div className="grid-item">
+              <span className="grid-label">Proposed Progress</span>
+              <span className="grid-value highlight-emerald">{proposedProgVal}%</span>
+            </div>
+            <div className="grid-item">
+              <span className="grid-label">Current Status</span>
+              <span className="grid-value">{draft.current_status || 'NOT_STARTED'}</span>
+            </div>
+            <div className="grid-item">
+              <span className="grid-label">Proposed Status</span>
+              <span className="grid-value font-bold text-amber-800">{proposedStatusVal}</span>
+            </div>
+            {draft.remarks && (
+              <div className="grid-item full-width">
+                <span className="grid-label">Remarks</span>
+                <span className="grid-value italic">"{draft.remarks}"</span>
+              </div>
+            )}
+          </div>
+
+          {/* Progress Visualizer Bar */}
+          {draft.update_type === 'PROGRESS' && (
+            <div className="ai-draft-progress-bar-container">
+              <div className="progress-bar-labels">
+                <span>Progress: <strong>{currentProgVal}%</strong></span>
+                <ArrowRight size={11} className="text-slate-400" />
+                <span className="text-emerald-700 font-bold">{proposedProgVal}%</span>
+              </div>
+              <div className="progress-bar-track">
+                <div className="progress-fill-current" style={{ width: `${Math.min(100, currentProgVal)}%` }} />
+                <div
+                  className="progress-fill-proposed"
+                  style={{
+                    left: `${Math.min(100, currentProgVal)}%`,
+                    width: `${Math.max(0, Math.min(100, proposedProgVal - currentProgVal))}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="ai-draft-unmatched-box">
+          <p className="unmatched-title">Could not confidently match report to a schedule activity.</p>
+          <p className="unmatched-report-text">Original Report: "{draft.original_text}"</p>
+        </div>
+      )}
+
+      {/* Suggested Alternative Candidates */}
+      {draft.alternatives && draft.alternatives.length > 0 && draft.match_status !== 'MATCHED_HIGH' && (
+        <div className="ai-draft-alternatives-section">
+          <span className="alternatives-label">Suggested Alternative Candidates:</span>
+          <div className="alternatives-list">
+            {draft.alternatives.map((alt) => (
+              <button
+                key={alt.activity_id}
+                type="button"
+                onClick={() => handleSelectActivity(alt.activity_id)}
+                disabled={processing}
+                className="btn-alternative-candidate"
+              >
+                <span className="alt-code">{alt.activity_code}</span>
+                <span className="alt-name">{alt.activity_name}</span>
+                <span className="alt-conf">{Math.round(alt.confidence * 100)}%</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Choose Different Activity Picker Panel */}
+      {showActivityPicker && (
+        <div className="ai-draft-picker-panel">
+          <div className="picker-search-wrapper">
+            <Search size={14} className="picker-search-icon" />
+            <input
+              type="text"
+              value={pickerSearch}
+              onChange={(e) => {
+                setPickerSearch(e.target.value);
+                loadPickerActivities(e.target.value);
+              }}
+              placeholder={`Search ${assignedDiscipline || ''} activities...`}
+              className="picker-search-input"
+            />
+          </div>
+          <div className="picker-candidate-list">
+            {loadingActivities ? (
+              <div className="picker-loading-text">Loading activities...</div>
+            ) : pickerActivities.length === 0 ? (
+              <div className="picker-empty-text">No matching activities found in your assigned discipline.</div>
+            ) : (
+              pickerActivities.map((act) => (
+                <div
+                  key={act.id}
+                  onClick={() => handleSelectActivity(act.id)}
+                  className="picker-candidate-row"
+                >
+                  <div className="candidate-left">
+                    <span className="ai-draft-code-tag">{act.activity_code}</span>
+                    <span className="candidate-name">{act.activity_name}</span>
+                  </div>
+                  <span className="ai-draft-discipline-tag">{act.discipline}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons Row */}
+      <div className="ai-draft-actions-row">
+        {draft.matched_activity_id && (
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={processing}
+            className="btn-draft-confirm"
+          >
+            {processing ? (
+              <>
+                <RefreshCw size={13} className="animate-spin" />
+                <span>Updating...</span>
+              </>
+            ) : (
+              <>
+                <Check size={14} />
+                <span>Confirm Update</span>
+              </>
+            )}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={togglePicker}
+          disabled={processing}
+          className="btn-draft-secondary"
+        >
+          <span>Choose Different Activity</span>
+          <ChevronDown size={13} />
+        </button>
+
+        {!draft.matched_activity_id && (
+          <button
+            type="button"
+            onClick={handleFlagReview}
+            disabled={processing}
+            className="btn-draft-warning"
+          >
+            Flag for Planner Review
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={processing}
+          className="btn-draft-cancel"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}

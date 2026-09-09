@@ -61,6 +61,7 @@ def process_progress_update(
     activity_id: int,
     user: User,
     report_req: ProgressReportRequest,
+    source_type: str = "MANUAL",
 ) -> Tuple[ActivityExecution, ProgressUpdate]:
     """
     Validates and applies an execution progress update in a single transaction.
@@ -224,7 +225,7 @@ def process_progress_update(
         reported_date=rep_date,
         progress_percentage=execution.progress_percentage,
         remarks=report_req.remarks.strip() if report_req.remarks else None,
-        source_type="MANUAL",
+        source_type=source_type,
     )
     db.add(update_log)
 

@@ -709,5 +709,132 @@ export async function deleteAIConversation(token, projectId, conversationId) {
   }
 }
 
+/* ==========================================================================
+   PHASE 8 NATURAL-LANGUAGE EXECUTION REPORT DRAFT APIs
+   ========================================================================== */
+
+/**
+ * Confirm an AI-generated execution report draft and apply progress update.
+ */
+export async function confirmAIDraft(token, projectId, draftId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/progress-drafts/${draftId}/confirm`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to confirm progress update (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to confirm progress update' };
+  }
+}
+
+/**
+ * Cancel/reject an AI-generated execution report draft.
+ */
+export async function cancelAIDraft(token, projectId, draftId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/progress-drafts/${draftId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to cancel draft (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to cancel draft' };
+  }
+}
+
+/**
+ * Manually assign schedule activity to execution report draft.
+ */
+export async function selectAIDraftActivity(token, projectId, draftId, activityId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/progress-drafts/${draftId}/select-activity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ activity_id: activityId }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to link activity (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to link activity' };
+  }
+}
+
+/**
+ * Flag unmatched execution report draft for Planner Review.
+ */
+export async function flagAIDraftPlannerReview(token, projectId, draftId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/progress-drafts/${draftId}/flag-planner-review`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to flag for review (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to flag for review' };
+  }
+}
+
+/**
+ * Retrieve execution report draft details.
+ */
+export async function getAIDraft(token, projectId, draftId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ai/progress-drafts/${draftId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch draft (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load draft' };
+  }
+}
+
+
 
 
