@@ -1048,6 +1048,27 @@ export default function ProjectWorkspace() {
             )}
           </section>
         )}
+
+        {/* TAB 4: PROJECT AI ASSISTANT (Phase 7) */}
+        {activeTab === 'ai' && (
+          <ProjectAITab
+            token={token}
+            project={project}
+            user={user}
+            assignedDiscipline={project?.assigned_discipline}
+            onSelectActivityCode={async (actCode) => {
+              try {
+                const res = await getActivities(token, projectId, { search: actCode, pageSize: 1 });
+                if (res.success && res.data && res.data.items && res.data.items.length > 0) {
+                  const fullAct = await getActivity(token, projectId, res.data.items[0].id);
+                  if (fullAct.success && fullAct.data) setSelectedActivity(fullAct.data);
+                }
+              } catch (e) {
+                console.error('Failed to select activity by code', e);
+              }
+            }}
+          />
+        )}
       </main>
 
       {/* ====================================================================
@@ -1270,27 +1291,6 @@ export default function ProjectWorkspace() {
           </div>
         );
       })()}
-
-        {/* TAB 3: PROJECT AI ASSISTANT (Phase 7) */}
-        {activeTab === 'ai' && (
-          <ProjectAITab
-            token={token}
-            project={project}
-            user={user}
-            assignedDiscipline={project?.assigned_discipline}
-            onSelectActivityCode={async (actCode) => {
-              try {
-                const res = await getActivities(token, projectId, { search: actCode, pageSize: 1 });
-                if (res.success && res.data && res.data.items && res.data.items.length > 0) {
-                  const fullAct = await getActivity(token, projectId, res.data.items[0].id);
-                  if (fullAct.success && fullAct.data) setSelectedActivity(fullAct.data);
-                }
-              } catch (e) {
-                console.error('Failed to select activity by code', e);
-              }
-            }}
-          />
-        )}
 
       {/* ====================================================================
           MULTI-STEP SCHEDULE IMPORT MODAL (Planner only)
