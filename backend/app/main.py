@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database.database import Base, engine
 import app.models  # Import all models to register on Base.metadata
-from app.routers import auth, test_roles, projects, users, schedule, execution, dashboard, ai_chat, progress_reports, planner_review
+from app.routers import auth, test_roles, projects, users, schedule, execution, dashboard, ai_chat, progress_reports, planner_review, schedule_export
 
 
 @asynccontextmanager
@@ -42,6 +42,7 @@ app.include_router(dashboard.router, prefix="/api")
 app.include_router(ai_chat.router, prefix="/api")
 app.include_router(progress_reports.router, prefix="/api")
 app.include_router(planner_review.router, prefix="/api")
+app.include_router(schedule_export.router, prefix="/api")
 
 
 

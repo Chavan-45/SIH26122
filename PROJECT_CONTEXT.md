@@ -2,7 +2,7 @@
 
 > **Last Updated:** September 10, 2026  
 > **Repository:** SIH26122 — Intelligent Data Capture & Schedule-Linking Layer for Infrastructure Project Management  
-> **Status:** Production-Ready Demo / Active Feature Development (Phases 1–10 Complete)
+> **Status:** Production-Ready Demo / Active Feature Development (Phases 1–11 Complete)
 
 ---
 
@@ -665,39 +665,34 @@ If the external Gemini API is unreachable or rate-limited, the system automatica
 
 ---
 
-## 11. Implemented Capabilities (Phase 10: Planner Review Center)
+## 11. Implemented Capabilities (Phases 10 & 11)
 
-### Objective
-Provide Lead Planners with a centralized, auditable command center to inspect, resolve, re-match, reject, or classify as unplanned any ambiguous or low-confidence progress reports originating from either AI Chat (`AI_REPORT`) or Batch Progress Reports (`PROGRESS_REPORT`).
+### Phase 10: Planner Review Center
+- **Unified Review Queue (`PlannerReviewCase`)**: Aggregates unmatched items, low-confidence matches (<0.70), and flagged updates across AI chat and batch report ingestion.
+- **Review Metrics Summary (`/summary`)**: 100% database-derived KPI counters for `needs_review`, `low_confidence`, `unmatched`, and `resolved`.
+- **Candidate Matching & Pre-Validation (`/{case_id}`)**: Detail inspector with top 5 RapidFuzz recommendations and Phase 5 state machine dry-run validation.
+- **Resolution Workflows**: Manual activity linking, case rejection with mandatory rationale, unplanned work classification (preserving baseline immutability), and transactional application via `process_progress_update(allow_planner_resolution=True)`.
 
-### Key Features Implemented:
-1. **Unified Review Queue (`PlannerReviewCase`)**:
-   - Idempotently aggregates unmatched items, low-confidence matches (<0.70), and flagged updates across all ingestion channels into a single persistent queue.
-   - Distinct decision states: `NEEDS_REVIEW`, `RESOLVED`, `REJECTED`, `UNPLANNED`, `APPLIED`.
-2. **Review Metrics Summary (`/summary`)**:
-   - 100% database-derived KPI counters: `needs_review_count`, `low_confidence_count`, `unmatched_count`, `resolved_count`.
-3. **Advanced Detail & Candidate Matching Drawer (`/{case_id}`)**:
-   - Displays raw field report text, extracted parameters, AI suggested match, current baseline status, and top 5 ranked activity candidates using Phase 8 RapidFuzz matcher.
-   - Interactive candidate search across all disciplines.
-   - Pre-validation of proposed updates against Phase 5 state machine (`VALID` / `INVALID` with actionable error reasons).
-4. **Resolution Actions**:
-   - **Select/Remap Activity (`/select-activity`)**: Changes target activity and sets decision to `RESOLVED`.
-   - **Reject (`/reject`)**: Marks case as `REJECTED` with required planner reason; dismisses invalid field claims.
-   - **Mark Unplanned (`/mark-unplanned`)**: Classifies work as `UNPLANNED` with required justification; preserves baseline immutability without creating master baseline activities.
-   - **Apply (`/apply`)**: Explicitly commits resolved updates through Phase 5 execution service (`process_progress_update`) with `allow_planner_resolution=True`, setting decision to `APPLIED`.
-5. **Zero Silent Updates & Strict RBAC**:
-   - Lead Planner ownership enforced on all review endpoints (Supervisors receive HTTP 403 Forbidden).
-   - Original reporter identity preserved in the audit log alongside planner reviewer IDs.
+### Phase 11: Schedule Sync / Actuals Export Bridge
+- **Execution Read-Only Principle**: Exports are strictly read-only with respect to `Activity`, `ActivityExecution`, and `ProgressUpdate`. The only writes are `ScheduleExport` and `ScheduleExportItem` audit and snapshot records.
+- **Canonical Actuals Dataset**: Clean 20-column export schema with `activity_code` as the business integration key. Internal database IDs never leak to export files.
+- **Change Detection**: Compares current live state against the last successful persisted snapshot using exact execution field changes (`actual_start`, `actual_finish`, `progress_percentage`, `execution_status`). Dynamic calculated metrics (`overdue_days`) do not trigger changes.
+- **Multi-Format Output**:
+  - **Excel (`XLSX`)**: Multi-sheet workbook containing `Activity Actuals` (bold/frozen header, autofilter) and `Export Summary` (metadata & Primavera/MS Project integration notice).
+  - **CSV**: Flat UTF-8 dataset for automated downstream pipelines.
+- **Historical Immutability**: Downloads reproduce the exact historical snapshot dynamically from `ScheduleExportItem.snapshot_json` without querying live state.
+- **Planner RBAC**: Lead Planner ownership required on all endpoints (`/api/projects/{project_id}/schedule-sync/*`); Supervisors receive HTTP 403 Forbidden.
 
 ---
 
 ## 12. Exact Next Steps & Implementation Roadmap
 
 ### Next Phases:
-- **Phase 11**: Document OCR & Scanned PDF Ingestion (Ingest PDF site reports via Gemini Vision).
-- **Phase 12**: Critical Path Method (CPM) & Earned Value Analysis (EVA) S-Curves (BCWS, BCWP, ACWP, SPI, CPI).
-- **Phase 13**: Automated PDF / Excel Executive Progress Summary Export for Stakeholders.
+- **Phase 12**: Document OCR & Scanned PDF Ingestion (Ingest scanned raster Daily Progress Reports via Gemini Vision).
+- **Phase 13**: Critical Path Method (CPM) & Earned Value Analysis (EVA) S-Curves (BCWS, BCWP, ACWP, SPI, CPI).
+- **Phase 14**: Automated PDF / Excel Executive Progress Summary Export for Stakeholders.
 
 ---
 
 *This document serves as the complete technical context for any engineer or AI agent continuing development on the SIH26122 platform.*
+

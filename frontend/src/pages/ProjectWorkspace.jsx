@@ -23,6 +23,7 @@ import DashboardTab from '../components/DashboardTab';
 import ProjectAITab from '../components/ProjectAITab';
 import ProgressReportsPage from './ProgressReportsPage';
 import PlannerReviewCenterTab from '../components/PlannerReviewCenterTab';
+import ScheduleSyncTab from '../components/ScheduleSyncTab';
 import {
   Building2,
   Calendar,
@@ -750,6 +751,16 @@ export default function ProjectWorkspace() {
               <span>Review Center</span>
             </button>
           )}
+          {isPlannerOwner && (
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'schedule-sync' ? 'active' : ''}`}
+              onClick={() => setActiveTab('schedule-sync')}
+            >
+              <RefreshCw size={16} />
+              <span>Schedule Sync</span>
+            </button>
+          )}
           <button
             type="button"
             className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
@@ -774,6 +785,17 @@ export default function ProjectWorkspace() {
         {activeTab === 'review-center' && isPlannerOwner && (
           <PlannerReviewCenterTab
             projectId={projectId}
+            token={token}
+            user={user}
+          />
+        )}
+
+        {/* TAB: SCHEDULE SYNC & ACTUALS EXPORT BRIDGE (PHASE 11) */}
+        {activeTab === 'schedule-sync' && isPlannerOwner && (
+          <ScheduleSyncTab
+            projectId={projectId}
+            projectCode={project?.project_code}
+            projectName={project?.name}
             token={token}
             user={user}
           />

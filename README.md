@@ -6,7 +6,7 @@
 
 ---
 
-### Current Status: Phase 10 (Planner Review Center)
+### Current Status: Phase 11 (Schedule Sync / Actuals Export Bridge)
 
 The platform currently includes:
 - **Authentication & Roles**: Secure bcrypt password hashing, JWT Bearer tokens, and strict role segregation between **Lead Planners** and **Field Supervisors**.
@@ -22,6 +22,8 @@ The platform currently includes:
 - **Natural-Language Progress Reporting & AI Schedule Linking (Phase 8)**: Allows authorized Supervisors to report real site execution using normal human language inside Project AI (e.g. *"We started foundation concreting today"*, *"Pipeline fabrication reached 60% today"*).
 - **Batch Progress Report Ingestion (Phase 9)**: Ingests spreadsheets (.csv, .xlsx) and pasted free-text Daily Progress Reports (DPR), extract items via Gemini/regex, and provides multi-item batch review and transactional apply.
 - **Planner Review Center (Phase 10)**: Centralized command center for Lead Planners to inspect, resolve, re-match, reject, or mark as unplanned any low-confidence or unmatched progress updates from AI chat and batch reports with zero silent updates, baseline immutability, and complete audit tracking.
+- **Schedule Sync & Actuals Export Bridge (Phase 11)**: Canonical export bridge allowing Lead Planners to preview, change-detect, and export schedule-linked actuals datasets (Full Baseline Snapshot or Changes Since Last Export) as formatted Excel (.xlsx) workbooks or flat .csv files. Uses `activity_code` as the business integration key and persists immutable export snapshot audits.
+  > *Note: This prototype exports schedule-linked canonical actuals and does not directly modify Primavera P6 or Microsoft Project binary schedules (.xer/.mpp).*
 
 
 ---

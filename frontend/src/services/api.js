@@ -1268,6 +1268,169 @@ export async function applyPlannerReviewCase(token, projectId, caseId) {
   }
 }
 
+/* ==========================================================================
+   PHASE 11: SCHEDULE SYNC & ACTUALS EXPORT BRIDGE API CLIENT
+   ========================================================================== */
+
+/**
+ * Get summary KPI metrics for Schedule Sync & Export (Planner only).
+ */
+export async function getScheduleSyncSummary(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule-sync/summary`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch sync summary (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load sync summary' };
+  }
+}
+
+/**
+ * Preview canonical schedule actuals before export (Planner only).
+ */
+export async function previewScheduleSync(token, projectId, mode = 'FULL_SNAPSHOT') {
+  try {
+    const queryParams = new URLSearchParams({ mode });
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule-sync/preview?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to preview export (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to preview schedule export' };
+  }
+}
+
+/**
+ * Create a persistent schedule actuals export snapshot (Planner only).
+ */
+export async function createScheduleExport(token, projectId, { exportMode = 'FULL_SNAPSHOT', fileFormat = 'XLSX' } = {}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule-sync/exports`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        export_mode: exportMode,
+        file_format: fileFormat,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to create export snapshot (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to create schedule export' };
+  }
+}
+
+/**
+ * List all past schedule exports for a project (Planner only).
+ */
+export async function getScheduleExports(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule-sync/exports`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch export history (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load export history' };
+  }
+}
+
+/**
+ * Get details of a specific historical export snapshot (Planner only).
+ */
+export async function getScheduleExportDetail(token, projectId, exportId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule-sync/exports/${exportId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch export details (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load export details' };
+  }
+}
+
+/**
+ * Download historical CSV or XLSX export file directly from snapshot (Planner only).
+ */
+export async function downloadScheduleExport(token, projectId, exportId, defaultFileName) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/schedule-sync/exports/${exportId}/download`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      throw new Error(errJson.detail || `Download failed (HTTP ${response.status})`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = defaultFileName || `export_${exportId}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to download export file' };
+  }
+}
+
 
 
 

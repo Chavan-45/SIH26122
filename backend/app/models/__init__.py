@@ -10,6 +10,7 @@ from app.models.execution_report_draft import ExecutionReportDraft
 from app.models.progress_report_import import ProgressReportImport
 from app.models.progress_report_item import ProgressReportItem
 from app.models.planner_review_case import PlannerReviewCase
+from app.models.schedule_export import ScheduleExport, ScheduleExportItem
 
 __all__ = [
     "User",
@@ -25,6 +26,8 @@ __all__ = [
     "ProgressReportImport",
     "ProgressReportItem",
     "PlannerReviewCase",
+    "ScheduleExport",
+    "ScheduleExportItem",
 ]
 
 
