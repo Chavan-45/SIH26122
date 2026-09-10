@@ -24,6 +24,7 @@ import ProjectAITab from '../components/ProjectAITab';
 import ProgressReportsPage from './ProgressReportsPage';
 import PlannerReviewCenterTab from '../components/PlannerReviewCenterTab';
 import ScheduleSyncTab from '../components/ScheduleSyncTab';
+import AnalyticsTab from '../components/AnalyticsTab';
 import {
   Building2,
   Calendar,
@@ -763,6 +764,14 @@ export default function ProjectWorkspace() {
           )}
           <button
             type="button"
+            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            <TrendingUp size={16} />
+            <span>Analytics</span>
+          </button>
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
             onClick={() => setActiveTab('team')}
           >
@@ -798,6 +807,19 @@ export default function ProjectWorkspace() {
             projectName={project?.name}
             token={token}
             user={user}
+          />
+        )}
+
+        {/* TAB: PROJECT ANALYTICS & FORECASTING (PHASE 12) */}
+        {activeTab === 'analytics' && (
+          <AnalyticsTab
+            projectId={projectId}
+            token={token}
+            user={user}
+            project={project}
+            isPlannerOwner={isPlannerOwner}
+            assignedDiscipline={project?.assigned_discipline}
+            onSelectActivity={(actId) => handleSelectActivityById(actId)}
           />
         )}
 

@@ -6,7 +6,7 @@
 
 ---
 
-### Current Status: Phase 11 (Schedule Sync / Actuals Export Bridge)
+### Current Status: Phase 12 (Project Analytics & Forecasting)
 
 The platform currently includes:
 - **Authentication & Roles**: Secure bcrypt password hashing, JWT Bearer tokens, and strict role segregation between **Lead Planners** and **Field Supervisors**.
@@ -23,7 +23,15 @@ The platform currently includes:
 - **Batch Progress Report Ingestion (Phase 9)**: Ingests spreadsheets (.csv, .xlsx) and pasted free-text Daily Progress Reports (DPR), extract items via Gemini/regex, and provides multi-item batch review and transactional apply.
 - **Planner Review Center (Phase 10)**: Centralized command center for Lead Planners to inspect, resolve, re-match, reject, or mark as unplanned any low-confidence or unmatched progress updates from AI chat and batch reports with zero silent updates, baseline immutability, and complete audit tracking.
 - **Schedule Sync & Actuals Export Bridge (Phase 11)**: Canonical export bridge allowing Lead Planners to preview, change-detect, and export schedule-linked actuals datasets (Full Baseline Snapshot or Changes Since Last Export) as formatted Excel (.xlsx) workbooks or flat .csv files. Uses `activity_code` as the business integration key and persists immutable export snapshot audits.
-  > *Note: This prototype exports schedule-linked canonical actuals and does not directly modify Primavera P6 or Microsoft Project binary schedules (.xer/.mpp).*
+- **Project Analytics & Forecasting (Phase 12)**: 100% deterministic database-derived project analytics engine and interactive UI:
+  - **Activity-Count-Weighted Progress**: Matches dashboard definition across all activities without arbitrary weights.
+  - **Time-Based Linear Expected Progress**: Deterministic baseline date-based progress clamped to `0–100%`.
+  - **Schedule Progress Variance**: Percentage point variance (`actual - expected pp`).
+  - **Reconstructed Historical Trend**: Replays `ProgressUpdate` history without synthetic/fake daily points across `7D`, `30D`, `90D`, and `ALL` horizons.
+  - **Rule-Based Schedule Risk Indicator**: Classifies `HIGH`, `MEDIUM`, `LOW`, and `NORMAL` risk with explainable reasons.
+  - **Deterministic Activity Forecasting**: Progress velocity ($\Delta \text{progress} / \Delta \text{days}$) for `IN_PROGRESS` work, with honest data quality flags (`GOOD`, `LIMITED`, `INSUFFICIENT`) and safety horizons.
+  - **Indicative Project Completion**: Objective indicative completion date derived from active activity finish estimates with explicit `forecast_coverage` metrics.
+  - > *Important: Forecasting uses observed progress rates and time-based schedule expectations. It does not perform CPM critical-path analysis.*
 
 
 ---

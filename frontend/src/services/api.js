@@ -1431,6 +1431,160 @@ export async function downloadScheduleExport(token, projectId, exportId, default
   }
 }
 
+/* ==========================================================================
+   PHASE 12 — PROJECT ANALYTICS & FORECASTING API CLIENT
+   ========================================================================== */
+
+/**
+ * Fetch top-level Analytics KPI summary and indicative completion metrics.
+ */
+export async function getAnalyticsSummary(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/analytics/summary`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch analytics summary (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load analytics summary' };
+  }
+}
+
+/**
+ * Fetch reconstructed historical actual vs expected progress trend series (7d, 30d, 90d, all).
+ */
+export async function getAnalyticsTrend(token, projectId, range = '30d') {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/analytics/progress-trend?range=${encodeURIComponent(range)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch progress trend (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load progress trend' };
+  }
+}
+
+/**
+ * Fetch discipline performance comparison metrics.
+ */
+export async function getAnalyticsDisciplines(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/analytics/disciplines`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch discipline analytics (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load discipline analytics' };
+  }
+}
+
+/**
+ * Fetch rule-based schedule risk classification items with optional level/discipline filtering.
+ */
+export async function getAnalyticsRisks(token, projectId, { level, discipline } = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (level && level !== 'ALL') params.append('level', level);
+    if (discipline && discipline !== 'ALL') params.append('discipline', discipline);
+
+    const queryStr = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/analytics/risks${queryStr}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch schedule risks (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load schedule risks' };
+  }
+}
+
+/**
+ * Fetch deterministic activity finish forecasts and project indicative completion.
+ */
+export async function getAnalyticsForecast(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/analytics/forecast`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch activity forecasts (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load activity forecasts' };
+  }
+}
+
+/**
+ * Fetch completed activity schedule performance variance.
+ */
+export async function getAnalyticsCompleted(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/analytics/completed-performance`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch completed performance (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load completed performance' };
+  }
+}
+
+
 
 
 

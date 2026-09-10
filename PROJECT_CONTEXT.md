@@ -60,6 +60,9 @@ This disconnect causes schedule latency, data loss, delayed critical path identi
 |  |    * Schedule Baseline Tab (Paginated L5/L6 Grid, Filters, Activity Detail Drawer)            | |
 |  |    * Project AI Tab (Operational Assistant, Tool-Use Queries, Interactive Proposal Cards)     | |
 |  |    * Progress Reports Tab (Spreadsheet & Text DPR Ingestion, Item Review & Batch Apply)       | |
+|  |    * Review Center Tab (Planner Review, Unmatched Resolution, Rejection & Manual Linking)     | |
+|  |    * Schedule Sync Tab (Canonical Export Bridge, Full Snapshot / Changes Only CSV & XLSX)     | |
+|  |    * Analytics Tab (Deterministic Variance, Historical Trends, Risk Indicators, Forecasts)    | |
 |  |    * Team Tab (Discipline assignments, Supervisor management)                                 | |
 |  +-----------------------------------------------------------------------------------------------+ |
 +-------------------------------------------------+--------------------------------------------------+
