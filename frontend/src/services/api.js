@@ -1611,8 +1611,119 @@ export async function getAnalyticsCompleted(token, projectId) {
   }
 }
 
+/**
+ * ============================================================================
+ * Phase 14: Institutional Project Memory & Historical Intelligence API
+ * ============================================================================
+ */
 
+/**
+ * Fetch project historical memory summary metrics.
+ */
+export async function getMemorySummary(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/memory/summary`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
 
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch memory summary (HTTP ${response.status})`);
+    }
 
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load project memory summary' };
+  }
+}
 
+/**
+ * Fetch paginated, filtered historical memory events.
+ */
+export async function getMemoryEvents(token, projectId, params = {}) {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.q) queryParams.set('q', params.q);
+    if (params.activity_id) queryParams.set('activity_id', params.activity_id);
+    if (params.activity_code) queryParams.set('activity_code', params.activity_code);
+    if (params.discipline && params.discipline !== 'ALL') queryParams.set('discipline', params.discipline);
+    if (params.event_type && params.event_type !== 'ALL') queryParams.set('event_type', params.event_type);
+    if (params.source && params.source !== 'ALL') queryParams.set('source', params.source);
+    if (params.date_from) queryParams.set('date_from', params.date_from);
+    if (params.date_to) queryParams.set('date_to', params.date_to);
+    if (params.page) queryParams.set('page', params.page);
+    if (params.page_size) queryParams.set('page_size', params.page_size);
 
+    const qs = queryParams.toString();
+    const url = `${API_BASE_URL}/api/projects/${projectId}/memory/events${qs ? `?${qs}` : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch memory events (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load memory events' };
+  }
+}
+
+/**
+ * Fetch chronological activity memory timeline, schedule context, and delay analysis.
+ */
+export async function getActivityMemoryTimeline(token, projectId, activityId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/memory/activities/${encodeURIComponent(activityId)}/timeline`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch activity memory timeline (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load activity timeline' };
+  }
+}
+
+/**
+ * Fetch deterministic activity delay classification and recorded notes.
+ */
+export async function getActivityDelayAnalysis(token, projectId, activityId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/memory/activities/${encodeURIComponent(activityId)}/delay-analysis`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch delay analysis (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load delay analysis' };
+  }
+}

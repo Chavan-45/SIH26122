@@ -25,6 +25,7 @@ import ProgressReportsPage from './ProgressReportsPage';
 import PlannerReviewCenterTab from '../components/PlannerReviewCenterTab';
 import ScheduleSyncTab from '../components/ScheduleSyncTab';
 import AnalyticsTab from '../components/AnalyticsTab';
+import ProjectMemoryTab from '../components/ProjectMemoryTab';
 import {
   Building2,
   Calendar,
@@ -772,6 +773,14 @@ export default function ProjectWorkspace() {
           </button>
           <button
             type="button"
+            className={`tab-btn ${activeTab === 'memory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('memory')}
+          >
+            <History size={16} />
+            <span>Project Memory</span>
+          </button>
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
             onClick={() => setActiveTab('team')}
           >
@@ -820,6 +829,18 @@ export default function ProjectWorkspace() {
             isPlannerOwner={isPlannerOwner}
             assignedDiscipline={project?.assigned_discipline}
             onSelectActivity={(actId) => handleSelectActivityById(actId)}
+          />
+        )}
+
+        {/* TAB: INSTITUTIONAL PROJECT MEMORY (PHASE 14) */}
+        {activeTab === 'memory' && (
+          <ProjectMemoryTab
+            projectId={projectId}
+            token={token}
+            user={user}
+            project={project}
+            isPlannerOwner={isPlannerOwner}
+            assignedDiscipline={project?.assigned_discipline}
           />
         )}
 

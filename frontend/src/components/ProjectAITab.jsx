@@ -436,10 +436,17 @@ function ProjectAITabInner({ token, project, user, assignedDiscipline, onSelectA
               ) : (
                 messages.map((msg, i) => {
                   const isUser = msg.role === 'USER';
-                  let sources = [];
+                  let sources = msg.sources || [];
+                  let evidence = msg.evidence || [];
                   if (msg.metadata_json) {
                     try {
-                      sources = JSON.parse(msg.metadata_json);
+                      const meta = JSON.parse(msg.metadata_json);
+                      if (Array.isArray(meta)) {
+                        sources = meta;
+                      } else if (typeof meta === 'object' && meta !== null) {
+                        if (meta.sources) sources = meta.sources;
+                        if (meta.evidence) evidence = meta.evidence;
+                      }
                     } catch (e) {}
                   }
 
@@ -479,6 +486,39 @@ function ProjectAITabInner({ token, project, user, assignedDiscipline, onSelectA
                                     );
                                   }}
                                 />
+                              )}
+
+                              {/* Phase 14 Grounded Evidence UI */}
+                              {!msg.draft && evidence && evidence.length > 0 && (
+                                <div className="ai-evidence-container">
+                                  <div className="ai-evidence-header">
+                                    <Shield size={12} className="text-orange" />
+                                    <span>Evidence from project records ({evidence.length})</span>
+                                  </div>
+                                  <div className="ai-evidence-grid">
+                                    {evidence.map((ev, ei) => (
+                                      <div key={ei} className="ai-evidence-card">
+                                        <div className="ai-ev-top-row">
+                                          <span className="ai-ev-id-badge font-mono">{ev.id || `E${ei + 1}`}</span>
+                                          {ev.date && <span className="ai-ev-date font-mono">{ev.date}</span>}
+                                          {ev.source && (
+                                            <span className={`ai-ev-source-badge src-${(ev.source || 'manual').toLowerCase()}`}>
+                                              {ev.source.replace('_', ' ')}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="ai-ev-code-row">
+                                          <span className="ai-ev-code font-mono">{ev.activity_code}</span>
+                                          {ev.activity_name && <span className="ai-ev-name">• {ev.activity_name}</span>}
+                                        </div>
+                                        <div className="ai-ev-summary">{ev.summary}</div>
+                                        {ev.remarks && (
+                                          <div className="ai-ev-remarks">"{ev.remarks}"</div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                             </>
                           )}

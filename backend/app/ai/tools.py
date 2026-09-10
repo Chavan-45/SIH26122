@@ -681,6 +681,158 @@ def get_project_team(db: Session, project_id: int) -> Dict[str, Any]:
     }
 
 
+# ============================================================================
+# Phase 14 Institutional Project Memory & Historical Intelligence Tools
+# ============================================================================
+
+from app.services.project_memory_service import ProjectMemoryService
+
+
+def get_activity_timeline(
+    db: Session,
+    project_id: int,
+    activity_code: str,
+    user_role: str = "PLANNER",
+    user_discipline: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieves complete chronological historical timeline, baseline schedule context, and delay facts for an activity.
+    Activity code can be exact like 'PIP-201' or 'CIV-103'.
+    """
+    try:
+        res = ProjectMemoryService.get_activity_timeline(
+            db=db,
+            project_id=project_id,
+            activity_id_or_code=activity_code,
+            user_role=user_role,
+            user_discipline=user_discipline,
+        )
+        return res.model_dump()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def get_project_history(
+    db: Session,
+    project_id: int,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    event_type: Optional[str] = None,
+    source: Optional[str] = None,
+    limit: int = 50,
+    user_role: str = "PLANNER",
+    user_discipline: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieves chronological project-wide historical execution updates and review decisions.
+    Date filters should be YYYY-MM-DD.
+    """
+    try:
+        d_from = date.fromisoformat(date_from) if date_from else None
+        d_to = date.fromisoformat(date_to) if date_to else None
+        res = ProjectMemoryService.get_project_events(
+            db=db,
+            project_id=project_id,
+            user_role=user_role,
+            user_discipline=user_discipline,
+            date_from=d_from,
+            date_to=d_to,
+            event_type=event_type,
+            source=source,
+            page=1,
+            page_size=min(limit, 100),
+        )
+        return res.model_dump()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def get_discipline_history(
+    db: Session,
+    project_id: int,
+    discipline: str,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = 50,
+    user_role: str = "PLANNER",
+    user_discipline: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieves historical execution updates and events for a specific engineering discipline (e.g., CIVIL, PIPING, ELECTRICAL).
+    For Supervisors, access is restricted to their assigned discipline.
+    """
+    try:
+        d_from = date.fromisoformat(date_from) if date_from else None
+        d_to = date.fromisoformat(date_to) if date_to else None
+        res = ProjectMemoryService.get_project_events(
+            db=db,
+            project_id=project_id,
+            user_role=user_role,
+            user_discipline=user_discipline,
+            discipline=discipline,
+            date_from=d_from,
+            date_to=d_to,
+            page=1,
+            page_size=min(limit, 100),
+        )
+        return res.model_dump()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def search_project_history(
+    db: Session,
+    project_id: int,
+    query: str,
+    limit: int = 50,
+    user_role: str = "PLANNER",
+    user_discipline: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Searches across historical project memory by activity code, activity name, remarks, or notes.
+    """
+    try:
+        events = ProjectMemoryService.search_events(
+            db=db,
+            project_id=project_id,
+            query=query,
+            user_role=user_role,
+            user_discipline=user_discipline,
+            limit=min(limit, 100),
+        )
+        return {
+            "query": query,
+            "total_found": len(events),
+            "events": [e.model_dump() for e in events],
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def get_activity_delay_analysis(
+    db: Session,
+    project_id: int,
+    activity_code: str,
+    user_role: str = "PLANNER",
+    user_discipline: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Calculates deterministic delay facts (status, days late/overdue) and cites recorded notes.
+    Does not invent causes.
+    """
+    try:
+        res = ProjectMemoryService.get_activity_delay_analysis(
+            db=db,
+            project_id=project_id,
+            activity_id_or_code=activity_code,
+            user_role=user_role,
+            user_discipline=user_discipline,
+        )
+        return res.model_dump()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # Dispatcher mapping
 TOOL_DISPATCHER = {
     "get_project_overview": get_project_overview,
@@ -694,6 +846,11 @@ TOOL_DISPATCHER = {
     "get_recent_progress_updates": get_recent_progress_updates,
     "get_activity_progress_history": get_activity_progress_history,
     "get_project_team": get_project_team,
+    "get_activity_timeline": get_activity_timeline,
+    "get_project_history": get_project_history,
+    "get_discipline_history": get_discipline_history,
+    "search_project_history": search_project_history,
+    "get_activity_delay_analysis": get_activity_delay_analysis,
 }
 
 

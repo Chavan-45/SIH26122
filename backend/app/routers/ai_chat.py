@@ -323,7 +323,7 @@ def send_ai_chat_message(
 
     # Step 2: Handle PROJECT_QUERY turn
     existing_messages = conversation.messages or []
-    assistant_text, sources = run_ai_chat_turn(
+    assistant_text, sources, evidence = run_ai_chat_turn(
         db=db,
         project=project,
         user=current_user,
@@ -333,11 +333,17 @@ def send_ai_chat_message(
     )
 
     # Save Assistant message
+    meta_dict = {}
+    if sources:
+        meta_dict["sources"] = sources
+    if evidence:
+        meta_dict["evidence"] = evidence
+
     assistant_msg = AIMessage(
         conversation_id=conversation.id,
         role="ASSISTANT",
         content=assistant_text,
-        metadata_json=json.dumps(sources) if sources else None,
+        metadata_json=json.dumps(meta_dict) if meta_dict else (json.dumps(sources) if sources else None),
     )
     db.add(assistant_msg)
     conversation.updated_at = datetime.now(timezone.utc)
@@ -345,12 +351,17 @@ def send_ai_chat_message(
     db.refresh(assistant_msg)
     db.refresh(conversation)
 
+    assistant_resp = AIMessageResponse.model_validate(assistant_msg)
+    if evidence:
+        assistant_resp.evidence = evidence
+
     return AIChatResponse(
         conversation_id=conversation.id,
         conversation_title=conversation.title,
         user_message=AIMessageResponse.model_validate(user_msg),
-        assistant_message=AIMessageResponse.model_validate(assistant_msg),
+        assistant_message=assistant_resp,
         sources=sources,
+        evidence=evidence if evidence else None,
         response_type="MESSAGE",
     )
 
@@ -681,20 +692,23 @@ def get_ai_conversation(
         if msg.role == "ASSISTANT" and msg.metadata_json:
             try:
                 meta = json.loads(msg.metadata_json)
-                if isinstance(meta, dict) and "draft_id" in meta:
-                    d_id = meta["draft_id"]
-                    draft_obj = draft_map.get(d_id)
-                    if not draft_obj:
-                        draft_obj = (
-                            db.query(ExecutionReportDraft)
-                            .filter(
-                                ExecutionReportDraft.id == d_id,
-                                ExecutionReportDraft.project_id == project_id,
+                if isinstance(meta, dict):
+                    if "draft_id" in meta:
+                        d_id = meta["draft_id"]
+                        draft_obj = draft_map.get(d_id)
+                        if not draft_obj:
+                            draft_obj = (
+                                db.query(ExecutionReportDraft)
+                                .filter(
+                                    ExecutionReportDraft.id == d_id,
+                                    ExecutionReportDraft.project_id == project_id,
+                                )
+                                .first()
                             )
-                            .first()
-                        )
-                    if draft_obj:
-                        msg_resp.draft = build_draft_response(db, draft_obj)
+                        if draft_obj:
+                            msg_resp.draft = build_draft_response(db, draft_obj)
+                    if "evidence" in meta:
+                        msg_resp.evidence = meta["evidence"]
             except Exception:
                 pass
         msg_responses.append(msg_resp)

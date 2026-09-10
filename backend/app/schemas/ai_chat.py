@@ -47,6 +47,7 @@ class AIMessageResponse(BaseModel):
     created_at: datetime
     metadata_json: Optional[str] = None
     draft: Optional[ExecutionReportDraftResponse] = None
+    evidence: Optional[List[Dict[str, Any]]] = None
 
     class Config:
         from_attributes = True
@@ -88,5 +89,7 @@ class AIChatResponse(BaseModel):
     user_message: AIMessageResponse
     assistant_message: AIMessageResponse
     sources: List[Dict[str, Any]] = []
+    evidence: Optional[List[Dict[str, Any]]] = None
     response_type: str = "MESSAGE"  # MESSAGE or PROGRESS_DRAFT
     draft: Optional[ExecutionReportDraftResponse] = None
+
