@@ -22,6 +22,7 @@ import Navbar from '../components/Navbar';
 import DashboardTab from '../components/DashboardTab';
 import ProjectAITab from '../components/ProjectAITab';
 import ProgressReportsPage from './ProgressReportsPage';
+import PlannerReviewCenterTab from '../components/PlannerReviewCenterTab';
 import {
   Building2,
   Calendar,
@@ -38,6 +39,7 @@ import {
   CheckCircle2,
   Shield,
   Briefcase,
+  ClipboardCheck,
   X,
   FileSpreadsheet,
   Upload,
@@ -738,6 +740,16 @@ export default function ProjectWorkspace() {
             <FileSpreadsheet size={16} />
             <span>Progress Reports</span>
           </button>
+          {isPlannerOwner && (
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'review-center' ? 'active' : ''}`}
+              onClick={() => setActiveTab('review-center')}
+            >
+              <ClipboardCheck size={16} />
+              <span>Review Center</span>
+            </button>
+          )}
           <button
             type="button"
             className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
@@ -755,6 +767,15 @@ export default function ProjectWorkspace() {
             project={project}
             user={user}
             assignedDiscipline={project?.assigned_discipline}
+          />
+        )}
+
+        {/* TAB: PLANNER REVIEW CENTER (PHASE 10) */}
+        {activeTab === 'review-center' && isPlannerOwner && (
+          <PlannerReviewCenterTab
+            projectId={projectId}
+            token={token}
+            user={user}
           />
         )}
 

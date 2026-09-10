@@ -62,6 +62,8 @@ def process_progress_update(
     user: User,
     report_req: ProgressReportRequest,
     source_type: str = "MANUAL",
+    allow_planner_resolution: bool = False,
+    override_reporter: Optional[User] = None,
 ) -> Tuple[ActivityExecution, ProgressUpdate]:
     """
     Validates and applies an execution progress update in a single transaction.
@@ -79,8 +81,9 @@ def process_progress_update(
             detail=f"Activity with ID {activity_id} not found in this project.",
         )
 
-    # Security check: discipline authorization
-    verify_supervisor_discipline_authorization(user, activity, project, db)
+    # Security check: discipline authorization (enforced unless explicit planner resolution)
+    if not allow_planner_resolution:
+        verify_supervisor_discipline_authorization(user, activity, project, db)
 
     # Retrieve or create ActivityExecution record
     execution = (
@@ -217,10 +220,11 @@ def process_progress_update(
     execution.last_updated_at = datetime.now(timezone.utc)
 
     # Append-only audit trail
+    reporting_user_id = override_reporter.id if override_reporter else user.id
     update_log = ProgressUpdate(
         project_id=project_id,
         activity_id=activity_id,
-        reported_by_id=user.id,
+        reported_by_id=reporting_user_id,
         update_type=action,
         reported_date=rep_date,
         progress_percentage=execution.progress_percentage,

@@ -9,6 +9,7 @@ from app.models.ai_chat import AIConversation, AIMessage
 from app.models.execution_report_draft import ExecutionReportDraft
 from app.models.progress_report_import import ProgressReportImport
 from app.models.progress_report_item import ProgressReportItem
+from app.models.planner_review_case import PlannerReviewCase
 
 __all__ = [
     "User",
@@ -23,6 +24,7 @@ __all__ = [
     "ExecutionReportDraft",
     "ProgressReportImport",
     "ProgressReportItem",
+    "PlannerReviewCase",
 ]
 
 

@@ -1068,6 +1068,207 @@ export async function applyProgressReport(token, projectId, reportId) {
   }
 }
 
+/* ==========================================================================
+   PHASE 10 PLANNER REVIEW CENTER APIs
+   ========================================================================== */
+
+/**
+ * Get real DB summary counts for Planner Review Center cards (Planner only).
+ */
+export async function getPlannerReviewSummary(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/review-center/summary`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch review summary (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load review summary' };
+  }
+}
+
+/**
+ * Get paginated list of field update review cases with filters (Planner only).
+ */
+export async function getPlannerReviewCases(
+  token,
+  projectId,
+  { page = 1, pageSize = 50, status = 'ALL', source = 'ALL', discipline = 'ALL', confidence = 'ALL', search = '' } = {}
+) {
+  try {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      page_size: pageSize.toString(),
+    });
+
+    if (status && status !== 'ALL') queryParams.append('status', status);
+    if (source && source !== 'ALL') queryParams.append('source', source);
+    if (discipline && discipline !== 'ALL') queryParams.append('discipline', discipline);
+    if (confidence && confidence !== 'ALL') queryParams.append('confidence', confidence);
+    if (search && search.trim()) queryParams.append('search', search.trim());
+
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/review-center?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch review cases (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load review cases' };
+  }
+}
+
+/**
+ * Get detailed review case with candidate activities and validation (Planner only).
+ */
+export async function getPlannerReviewCaseDetail(token, projectId, caseId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/review-center/${caseId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch review case detail (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load review case detail' };
+  }
+}
+
+/**
+ * Link an existing schedule activity to the review case (Planner only).
+ */
+export async function selectPlannerReviewActivity(token, projectId, caseId, activityId, reviewReason = null) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/review-center/${caseId}/select-activity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        activity_id: activityId,
+        review_reason: reviewReason || null,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to link activity (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to link activity' };
+  }
+}
+
+/**
+ * Reject a field update review case with reason (Planner only).
+ */
+export async function rejectPlannerReviewCase(token, projectId, caseId, reviewReason) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/review-center/${caseId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        review_reason: reviewReason,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to reject case (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to reject case' };
+  }
+}
+
+/**
+ * Mark a field update as genuine unplanned work (Planner only).
+ */
+export async function markPlannerReviewUnplanned(token, projectId, caseId, reviewReason) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/review-center/${caseId}/mark-unplanned`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        review_reason: reviewReason,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to mark unplanned (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to mark unplanned' };
+  }
+}
+
+/**
+ * Apply resolved review case via Phase 5 execution service (Planner only).
+ */
+export async function applyPlannerReviewCase(token, projectId, caseId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/review-center/${caseId}/apply`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to apply review case (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to apply review case' };
+  }
+}
+
+
 
 
 

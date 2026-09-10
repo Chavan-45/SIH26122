@@ -69,6 +69,12 @@ class Project(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    planner_review_cases = relationship(
+        "PlannerReviewCase",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     def __repr__(self) -> str:
         return f"<Project id={self.id} code={self.project_code} name={self.name}>"

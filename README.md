@@ -6,7 +6,7 @@
 
 ---
 
-### Current Status: Phase 8 (Natural-Language Progress Reporting + AI Schedule Linking)
+### Current Status: Phase 10 (Planner Review Center)
 
 The platform currently includes:
 - **Authentication & Roles**: Secure bcrypt password hashing, JWT Bearer tokens, and strict role segregation between **Lead Planners** and **Field Supervisors**.
@@ -19,13 +19,10 @@ The platform currently includes:
 - **Actual Execution & Field Progress Tracking**: Field execution reporting via `ActivityExecution` and append-only audit trail in `ProgressUpdate`. State machine controls valid status transitions (`START`, `PROGRESS`, `COMPLETE`, `ON_HOLD`, `RESUME`). Strictly enforced supervisor discipline authorization.
 - **100% Database-Derived Real Project Control Dashboard**: Real-time project control dashboard metrics derived directly from `Project`, `Activity`, `ActivityExecution`, `ProgressUpdate`, `ProjectMember`, and `User`.
 - **Project-Specific AI Assistant (Phase 7)**: Real-time, project-scoped operational assistant powered by Google Gemini (`google-genai` SDK v2.22.0) executing 10 safe server-bound Python database tools.
-- **Natural-Language Progress Reporting & AI Schedule Linking (Phase 8)**: Allows authorized Supervisors to report real site execution using normal human language inside Project AI (e.g. *"We started foundation concreting today"*, *"Pipeline fabrication reached 60% today"*, *"Put pipeline fabrication on hold"*).
-- **Voice Interface for Project AI (Phase 9)**: Adds browser-native speech recognition (Web Speech API with `en-IN` locale) directly into the Project AI message input bar.
-- **Speech-to-Text Pipeline**: Speech converts directly to editable text transcript in the existing message input. **NO AUTOMATIC SEND**, allowing human review/edit before sending.
-- **Zero Audio Storage & Confirmation Guarantee**: No raw audio files or streams are stored or transmitted. Once sent, voice transcripts follow the exact same Phase 8 human confirmation workflow prior to Phase 5 execution updates.
-- **CRITICAL GUARANTEE**: **THE AI NEVER SILENTLY UPDATES PROJECT DATA.** Human Supervisor confirmation is strictly required before calling the Phase 5 execution service.
-- **Supervisor-Only & Discipline RBAC**: Natural-language reporting is restricted to Supervisors for activities matching their assigned discipline. Planners remain strictly **READ-ONLY**; any execution report prompt from a Planner is refused.
-- **`AI_CHAT` Audit Source**: Confirmed natural-language progress updates record `source_type = "AI_CHAT"` in the append-only audit trail.
+- **Natural-Language Progress Reporting & AI Schedule Linking (Phase 8)**: Allows authorized Supervisors to report real site execution using normal human language inside Project AI (e.g. *"We started foundation concreting today"*, *"Pipeline fabrication reached 60% today"*).
+- **Batch Progress Report Ingestion (Phase 9)**: Ingests spreadsheets (.csv, .xlsx) and pasted free-text Daily Progress Reports (DPR), extract items via Gemini/regex, and provides multi-item batch review and transactional apply.
+- **Planner Review Center (Phase 10)**: Centralized command center for Lead Planners to inspect, resolve, re-match, reject, or mark as unplanned any low-confidence or unmatched progress updates from AI chat and batch reports with zero silent updates, baseline immutability, and complete audit tracking.
+
 
 ---
 
