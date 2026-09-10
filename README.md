@@ -6,7 +6,7 @@
 
 ---
 
-### Current Status: Phase 12 (Project Analytics & Forecasting)
+### Current Status: Phase 13 (Document & Scanned Progress Report Ingestion)
 
 The platform currently includes:
 - **Authentication & Roles**: Secure bcrypt password hashing, JWT Bearer tokens, and strict role segregation between **Lead Planners** and **Field Supervisors**.
@@ -23,15 +23,11 @@ The platform currently includes:
 - **Batch Progress Report Ingestion (Phase 9)**: Ingests spreadsheets (.csv, .xlsx) and pasted free-text Daily Progress Reports (DPR), extract items via Gemini/regex, and provides multi-item batch review and transactional apply.
 - **Planner Review Center (Phase 10)**: Centralized command center for Lead Planners to inspect, resolve, re-match, reject, or mark as unplanned any low-confidence or unmatched progress updates from AI chat and batch reports with zero silent updates, baseline immutability, and complete audit tracking.
 - **Schedule Sync & Actuals Export Bridge (Phase 11)**: Canonical export bridge allowing Lead Planners to preview, change-detect, and export schedule-linked actuals datasets (Full Baseline Snapshot or Changes Since Last Export) as formatted Excel (.xlsx) workbooks or flat .csv files. Uses `activity_code` as the business integration key and persists immutable export snapshot audits.
-- **Project Analytics & Forecasting (Phase 12)**: 100% deterministic database-derived project analytics engine and interactive UI:
-  - **Activity-Count-Weighted Progress**: Matches dashboard definition across all activities without arbitrary weights.
-  - **Time-Based Linear Expected Progress**: Deterministic baseline date-based progress clamped to `0–100%`.
-  - **Schedule Progress Variance**: Percentage point variance (`actual - expected pp`).
-  - **Reconstructed Historical Trend**: Replays `ProgressUpdate` history without synthetic/fake daily points across `7D`, `30D`, `90D`, and `ALL` horizons.
-  - **Rule-Based Schedule Risk Indicator**: Classifies `HIGH`, `MEDIUM`, `LOW`, and `NORMAL` risk with explainable reasons.
-  - **Deterministic Activity Forecasting**: Progress velocity ($\Delta \text{progress} / \Delta \text{days}$) for `IN_PROGRESS` work, with honest data quality flags (`GOOD`, `LIMITED`, `INSUFFICIENT`) and safety horizons.
-  - **Indicative Project Completion**: Objective indicative completion date derived from active activity finish estimates with explicit `forecast_coverage` metrics.
-  - > *Important: Forecasting uses observed progress rates and time-based schedule expectations. It does not perform CPM critical-path analysis.*
+- **Project Analytics & Forecasting (Phase 12)**: 100% deterministic database-derived project analytics engine and interactive UI with activity-count-weighted progress, linear expected progress, schedule variance, historical trend replay, rule-based risk classification, activity progress velocity forecasting, and indicative project completion metrics.
+- **Document & Scanned Progress Report Ingestion (Phase 13)**: Multi-format document ingestion for text PDFs, scanned DPR sheets, and site photos (.pdf, .jpg, .jpeg, .png):
+  - **Two-Stage Pipeline**: Stage 1 fast digital text extraction via `pypdf` with page provenance tracking; Stage 2 multimodal fallback via Google Gemini 2.5 Flash for scanned sheets, poor-text PDFs, and site photos.
+  - **Zero Silent Updates**: All extracted items enter `REVIEW` status requiring human verification before execution updates are committed.
+  - **Review & Provenance UI**: Document provenance badges (e.g., `PDF • Page 2`), expandable raw extracted text accordions, manual activity linking, and discipline-scoped supervisor validation.
 
 
 ---
@@ -181,6 +177,11 @@ SIH26122/
 | `GET` | `/api/projects/{id}/ai/progress-drafts/{did}` | Authorized Project Members | Get detailed execution report draft object |
 
 
+### Document & Scanned Report Ingestion (Phase 13)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/projects/{id}/progress-reports/import-document` | Project members | Ingest PDF document or site image (.pdf, .jpg, .jpeg, .png) with two-stage text/multimodal extraction |
+
 ---
 
 ## Frontend Routes
@@ -192,7 +193,7 @@ SIH26122/
 | `/planner` | Protected (`PLANNER`) | Planner Portal ("My Projects") |
 | `/planner/projects/new` | Protected (`PLANNER`) | Create Infrastructure Project |
 | `/supervisor` | Protected (`SUPERVISOR`) | Supervisor Portal ("Assigned Projects") |
-| `/projects/:projectId` | Project Members | Shared Project Workspace (Dashboard, Schedule Baseline, Team) |
+| `/projects/:projectId` | Project Members | Shared Project Workspace (Dashboard, Schedule Baseline, Team, Project AI, Progress Reports, Review Center, Schedule Sync, Analytics) |
 
 ---
 
@@ -206,9 +207,10 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - API Root: `http://localhost:8000`
 - Interactive Swagger Docs: `http://localhost:8000/docs`
 - Run Automated Test Suites:
-  - Phase 4: `python test_phase4.py`
-  - Phase 5: `python test_phase5.py`
-  - Phase 6: `python test_phase6.py`
+  - Phase 10 (Review Center): `python test_phase10.py`
+  - Phase 11 (Schedule Sync): `python test_phase11.py`
+  - Phase 12 (Analytics & Forecasting): `python test_phase12.py`
+  - Phase 13 (Document Ingestion): `python test_phase13.py`
 
 ### 2. Frontend
 ```bash

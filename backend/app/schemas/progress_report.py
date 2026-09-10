@@ -28,6 +28,8 @@ class ProgressReportItemResponse(BaseModel):
     extracted_update_type: Optional[str] = None
     extracted_progress_percentage: Optional[float] = None
     remarks: Optional[str] = None
+    source_page: Optional[int] = None
+    raw_extracted_text: Optional[str] = None
     matched_activity_id: Optional[int] = None
     matched_activity_code: Optional[str] = None
     matched_activity_name: Optional[str] = None
@@ -56,6 +58,8 @@ class ProgressReportImportResponse(BaseModel):
     source_type: str
     original_filename: Optional[str] = None
     raw_text: Optional[str] = None
+    page_count: Optional[int] = None
+    extraction_method: Optional[str] = None
     status: str
     total_items: int
     pending_items: int
@@ -77,6 +81,8 @@ class ProgressReportImportListItem(BaseModel):
     uploaded_by_name: str
     source_type: str
     original_filename: Optional[str] = None
+    page_count: Optional[int] = None
+    extraction_method: Optional[str] = None
     status: str
     total_items: int
     pending_items: int

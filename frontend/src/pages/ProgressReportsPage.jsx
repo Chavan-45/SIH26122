@@ -19,11 +19,17 @@ import {
   Info,
   Trash2,
   Sparkles,
+  Image as ImageIcon,
+  ChevronDown,
+  ChevronUp,
+  FileCheck,
+  Layers,
 } from 'lucide-react';
 import {
   previewReportSpreadsheet,
   importReportSpreadsheet,
   importReportText,
+  importReportDocument,
   getProgressReports,
   getProgressReport,
   reviewReportItem,
@@ -34,11 +40,12 @@ import {
 } from '../services/api';
 
 /**
- * Phase 9 Progress Reports Ingestion Page Component
- * Uses project vanilla CSS classes from index.css (.pr-* scoped selectors)
+ * Phase 9 & Phase 13 Progress Reports Ingestion Page Component
+ * Multi-format ingestion: Spreadsheets (CSV/XLSX), Pasted DPR text, PDF documents, and Scanned Site Images.
+ * Scoped styling via project index.css (.pr-* selectors).
  */
 export default function ProgressReportsPage({ token, project, user, assignedDiscipline }) {
-  const [activeTab, setActiveTab] = useState('import'); // 'import' | 'text' | 'history'
+  const [activeTab, setActiveTab] = useState('import'); // 'import' | 'text' | 'document' | 'history'
   const [reportsHistory, setReportsHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -58,6 +65,14 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
   // Text Report State
   const [pastedText, setPastedText] = useState('');
   const [parsingText, setParsingText] = useState(false);
+
+  // Document Upload State (Phase 13)
+  const [docFile, setDocFile] = useState(null);
+  const [docUploading, setDocUploading] = useState(false);
+  const [docStep, setDocStep] = useState(1);
+  const [docDragging, setDocDragging] = useState(false);
+  const docInputRef = useRef(null);
+  const [expandedSnippets, setExpandedSnippets] = useState({});
 
   // Global Page Error / Notice Alert
   const [pageError, setPageError] = useState(null);
@@ -125,17 +140,7 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
     }
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
+  const handleSpreadsheetDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -185,6 +190,70 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
     } else {
       setPageError(res.error || 'Failed to parse text report');
     }
+  };
+
+  // Document & Scanned Image Import (Phase 13)
+  const handleDocFileSelected = (selectedFile) => {
+    if (!selectedFile) return;
+
+    const ext = selectedFile.name.split('.').pop().toLowerCase();
+    if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+      setPageError(`Unsupported file format .${ext}. Please upload a PDF, JPG, or PNG document.`);
+      return;
+    }
+
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setPageError(`File size (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB) exceeds maximum limit of 10 MB.`);
+      return;
+    }
+
+    setDocFile(selectedFile);
+    setPageError(null);
+  };
+
+  const handleDocDrop = (e) => {
+    e.preventDefault();
+    setDocDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleDocFileSelected(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleImportDocument = async () => {
+    if (!docFile) return;
+
+    setDocUploading(true);
+    setDocStep(1);
+    setPageError(null);
+
+    // Progressive step indicator
+    const stepTimer = setTimeout(() => {
+      setDocStep(2);
+    }, 1500);
+
+    const res = await importReportDocument(token, project.id, docFile);
+    clearTimeout(stepTimer);
+    setDocUploading(false);
+
+    if (res.success) {
+      setActiveReportData(res.data);
+      setSelectedReportId(res.data.id);
+      setDocFile(null);
+      loadHistory();
+      setPageSuccess(
+        `Document extracted successfully (${res.data.total_items} update${res.data.total_items === 1 ? '' : 's'} identified)! Review items below before applying.`
+      );
+      setTimeout(() => setPageSuccess(null), 4000);
+    } else {
+      setPageError(res.error || 'Failed to extract updates from document');
+    }
+  };
+
+  const toggleSnippet = (itemId) => {
+    setExpandedSnippets((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
   };
 
   // Item Review Actions (Approve / Reject)
@@ -331,6 +400,21 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
     );
   };
 
+  // Source Type Badge Helper
+  const renderSourceTypeBadge = (sourceType) => {
+    const s = (sourceType || '').toUpperCase();
+    if (s === 'PDF') {
+      return <span className="pr-badge pr-badge-rose">PDF</span>;
+    }
+    if (s === 'IMAGE') {
+      return <span className="pr-badge pr-badge-purple">IMAGE</span>;
+    }
+    if (s === 'TEXT_DPR') {
+      return <span className="pr-badge pr-badge-amber">TEXT DPR</span>;
+    }
+    return <span className="pr-badge pr-badge-slate">{s || 'FILE'}</span>;
+  };
+
   // History status badge helper
   const historyStatusClass = (status) => {
     if (status === 'APPLIED') return 'pr-badge-green';
@@ -364,11 +448,11 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
           <div>
             <h2 className="pr-header-title">Progress Reports</h2>
             <p className="pr-header-subtitle">
-              Import and review field execution updates from spreadsheets or Daily Progress Reports.
+              Import and review field execution updates from spreadsheets, Daily Progress Reports, PDFs, or scanned site logs.
             </p>
           </div>
         </div>
-        <span className="pr-header-badge">Field Progress</span>
+        <span className="pr-header-badge">Field Progress Ingestion</span>
       </div>
 
       {/* ── GLOBAL ALERTS ── */}
@@ -417,6 +501,14 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
           </button>
           <button
             type="button"
+            className={`pr-tab${activeTab === 'document' ? ' pr-tab-active' : ''}`}
+            onClick={() => { setActiveTab('document'); setDocFile(null); }}
+          >
+            <FileCheck size={15} />
+            Document / Scan
+          </button>
+          <button
+            type="button"
             className={`pr-tab${activeTab === 'history' ? ' pr-tab-active' : ''}`}
             onClick={() => { setActiveTab('history'); loadHistory(); }}
           >
@@ -446,17 +538,16 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
             {!file && !previewData && (
               <div
                 className={`pr-dropzone${isDragging ? ' pr-drag-over' : ''}`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                onDrop={handleSpreadsheetDrop}
               >
                 <div className="pr-dropzone-icon">
                   <Upload size={34} />
                 </div>
-                <p className="pr-dropzone-title">Drag &amp; drop your progress report here</p>
+                <p className="pr-dropzone-title">Drag &amp; drop your progress spreadsheet here</p>
                 <span className="pr-dropzone-or">or</span>
 
-                {/* Hidden native file input — functionality preserved */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -465,7 +556,6 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
                   onChange={(e) => e.target.files && handleFileSelected(e.target.files[0])}
                 />
 
-                {/* Styled Browse Files button triggers the hidden input */}
                 <button
                   type="button"
                   className="pr-browse-btn"
@@ -598,7 +688,7 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
             )}
           </div>
 
-          {/* What can I upload? info card */}
+          {/* Info card */}
           <div className="pr-info-card">
             <div className="pr-info-heading">
               <Info size={14} />
@@ -675,6 +765,159 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
       )}
 
       {/* ══════════════════════════════════════════
+          PHASE 13: DOCUMENT / SCAN TAB
+         ══════════════════════════════════════════ */}
+      {activeTab === 'document' && !selectedReportId && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="pr-card">
+            <div>
+              <h3 className="pr-card-title">Document &amp; Scanned Report Ingestion</h3>
+              <p className="pr-card-subtitle">
+                Upload text-based or scanned PDFs, site photos, and DPR scan sheets.
+              </p>
+              <div className="pr-format-chips">
+                <span className="pr-format-chip">
+                  <FileText size={12} /> PDF (up to 20 pages)
+                </span>
+                <span className="pr-format-chip">
+                  <ImageIcon size={12} /> JPG / PNG Photos &amp; Scans
+                </span>
+                <span className="pr-format-chip">
+                  <Layers size={12} /> Max 10 MB
+                </span>
+              </div>
+            </div>
+
+            {/* State 1: No file selected yet */}
+            {!docFile && (
+              <div
+                className={`pr-dropzone${docDragging ? ' pr-drag-over' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDocDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setDocDragging(false); }}
+                onDrop={handleDocDrop}
+              >
+                <div className="pr-dropzone-icon">
+                  <Upload size={34} />
+                </div>
+                <p className="pr-dropzone-title">Drag &amp; drop PDF or site image report here</p>
+                <span className="pr-dropzone-or">or</span>
+
+                <input
+                  ref={docInputRef}
+                  type="file"
+                  accept=".pdf, .jpg, .jpeg, .png"
+                  className="pr-file-input-hidden"
+                  onChange={(e) => e.target.files && handleDocFileSelected(e.target.files[0])}
+                />
+
+                <button
+                  type="button"
+                  className="pr-browse-btn"
+                  onClick={() => docInputRef.current?.click()}
+                >
+                  <FileText size={15} />
+                  Browse Files
+                </button>
+
+                <p className="pr-dropzone-hint">PDF, JPG, PNG &bull; Maximum file size 10 MB &bull; PDFs up to 20 pages</p>
+              </div>
+            )}
+
+            {/* State 2: File selected, awaiting extraction */}
+            {docFile && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="pr-file-card">
+                  <div className="pr-file-card-left">
+                    <div className="pr-file-icon-box">
+                      {docFile.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <ImageIcon size={20} />}
+                    </div>
+                    <div>
+                      <div className="pr-file-name">{docFile.name}</div>
+                      <div className="pr-file-meta">
+                        {docFile.name.split('.').pop().toUpperCase()} &bull; {(docFile.size / 1024).toFixed(1)} KB
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="pr-file-remove-btn"
+                    onClick={() => setDocFile(null)}
+                    disabled={docUploading}
+                  >
+                    <Trash2 size={13} />
+                    Remove
+                  </button>
+                </div>
+
+                {docUploading && (
+                  <div className="pr-doc-steps-box">
+                    <div className={`pr-doc-step-item ${docStep === 1 ? 'active' : ''}`}>
+                      {docStep === 1 ? <RefreshCw size={14} className="pr-spin" /> : <CheckCircle2 size={14} color="var(--color-success)" />}
+                      <span>Step 1: Reading document content and extracting text layers...</span>
+                    </div>
+                    <div className={`pr-doc-step-item ${docStep === 2 ? 'active' : ''}`}>
+                      {docStep === 2 ? <RefreshCw size={14} className="pr-spin" /> : <Layers size={14} />}
+                      <span>Step 2: Parsing structured field progress updates and linking schedule activities...</span>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm"
+                    onClick={handleImportDocument}
+                    disabled={docUploading}
+                  >
+                    {docUploading ? (
+                      <>
+                        <RefreshCw size={14} className="pr-spin" />
+                        Extracting Updates...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={14} />
+                        Extract Updates
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Document Ingestion Info Card */}
+          <div className="pr-info-card">
+            <div className="pr-info-heading">
+              <Info size={14} />
+              Two-Stage Ingestion Pipeline
+            </div>
+            <div className="pr-info-grid">
+              <div className="pr-info-item">
+                <span className="pr-info-item-title">Stage 1: Native Text Extraction</span>
+                <p className="pr-info-item-desc">
+                  Digital PDFs are processed directly via fast text extraction with exact page provenance tracking.
+                </p>
+              </div>
+              <div className="pr-info-item">
+                <span className="pr-info-item-title">Stage 2: Multimodal Fallback</span>
+                <p className="pr-info-item-desc">
+                  Scanned reports, site photos, and poor-text PDFs route to Google Gemini 2.5 Flash for visual comprehension.
+                </p>
+              </div>
+              <div className="pr-info-item">
+                <span className="pr-info-item-title">Zero Silent Updates</span>
+                <p className="pr-info-item-desc">
+                  All extracted items require human review and explicit confirmation before applying to execution.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
           HISTORY TAB
          ══════════════════════════════════════════ */}
       {activeTab === 'history' && !selectedReportId && (
@@ -691,7 +934,7 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
               <FileText size={36} />
               <h4 className="pr-empty-title">No progress reports yet</h4>
               <p className="pr-empty-desc">
-                Upload a spreadsheet or paste a Daily Progress Report to create the first report session.
+                Upload a spreadsheet, PDF, site image, or paste a DPR to create the first report session.
               </p>
             </div>
           ) : (
@@ -715,7 +958,7 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
                         <span className="pr-code-badge">#{rep.id}</span>
                       </td>
                       <td>
-                        <span className="pr-badge pr-badge-slate">{rep.source_type}</span>
+                        {renderSourceTypeBadge(rep.source_type)}
                       </td>
                       <td style={{ fontSize: '0.8rem', fontWeight: 600 }}>{rep.uploaded_by_name}</td>
                       <td style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
@@ -764,7 +1007,12 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
                 <h3 className="pr-review-title">
                   Review Progress Report #{activeReportData.id}
                 </h3>
-                <span className="pr-badge pr-badge-slate">{activeReportData.source_type}</span>
+                {renderSourceTypeBadge(activeReportData.source_type)}
+                {activeReportData.page_count && (
+                  <span className="pr-badge pr-badge-slate">
+                    {activeReportData.page_count} {activeReportData.page_count === 1 ? 'Page' : 'Pages'}
+                  </span>
+                )}
                 <span className={`pr-badge ${historyStatusClass(activeReportData.status)}`}>
                   {activeReportData.status}
                 </span>
@@ -841,8 +1089,8 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
                     key={item.id}
                     className={item.validation_status === 'INVALID' ? 'pr-row-invalid' : ''}
                   >
-                    {/* Source Update */}
-                    <td style={{ maxWidth: 220 }}>
+                    {/* Source Update with Provenance & Snippet */}
+                    <td style={{ maxWidth: 240 }}>
                       <div
                         className="pr-cell-truncate"
                         style={{ fontWeight: 600 }}
@@ -850,12 +1098,47 @@ export default function ProgressReportsPage({ token, project, user, assignedDisc
                       >
                         {item.raw_description}
                       </div>
+
+                      {/* Source Provenance Chip */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        {item.source_page && (
+                          <span className="pr-provenance-tag">
+                            <FileText size={10} /> Page {item.source_page}
+                          </span>
+                        )}
+                        {activeReportData.source_type === 'IMAGE' && !item.source_page && (
+                          <span className="pr-provenance-tag">
+                            <ImageIcon size={10} /> Photo Scan
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Remarks */}
                       {item.remarks && (
                         <div
-                          style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}
+                          style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: '0.2rem' }}
                           title={item.remarks}
                         >
-                          {item.remarks.length > 60 ? item.remarks.slice(0, 60) + '…' : item.remarks}
+                          {item.remarks.length > 55 ? item.remarks.slice(0, 55) + '…' : item.remarks}
+                        </div>
+                      )}
+
+                      {/* Raw Extracted Text Accordion */}
+                      {item.raw_extracted_text && (
+                        <div>
+                          <button
+                            type="button"
+                            className="pr-text-snippet-btn"
+                            onClick={() => toggleSnippet(item.id)}
+                          >
+                            {expandedSnippets[item.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                            {expandedSnippets[item.id] ? 'Hide raw text' : 'Show extracted text'}
+                          </button>
+                          {expandedSnippets[item.id] && (
+                            <div className="pr-text-snippet-box">
+                              {item.raw_extracted_text}
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>

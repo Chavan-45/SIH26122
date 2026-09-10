@@ -493,6 +493,16 @@ def build_report_item_response(
             update_type=item.extracted_update_type or "PROGRESS",
         )
 
+    # Parse page provenance from remarks if available (e.g. "[Page 3] ...")
+    source_page = None
+    if item.remarks:
+        page_match = re.search(r"\[Page\s+(\d+)\]", item.remarks)
+        if page_match:
+            try:
+                source_page = int(page_match.group(1))
+            except ValueError:
+                pass
+
     return ProgressReportItemResponse(
         id=item.id,
         report_id=item.report_id,
@@ -502,6 +512,8 @@ def build_report_item_response(
         extracted_update_type=item.extracted_update_type,
         extracted_progress_percentage=item.extracted_progress_percentage,
         remarks=item.remarks,
+        source_page=source_page,
+        raw_extracted_text=item.raw_description,
         matched_activity_id=item.matched_activity_id,
         matched_activity_code=code,
         matched_activity_name=name,
@@ -540,6 +552,16 @@ def build_report_import_response(
 
     uploaded_by_name = report.uploaded_by.full_name if report.uploaded_by else "Unknown"
 
+    page_count = None
+    extraction_method = None
+    if report.raw_text and report.raw_text.strip().startswith("{"):
+        try:
+            meta = json.loads(report.raw_text)
+            page_count = meta.get("page_count")
+            extraction_method = meta.get("extraction_method")
+        except Exception:
+            pass
+
     return ProgressReportImportResponse(
         id=report.id,
         project_id=report.project_id,
@@ -548,6 +570,8 @@ def build_report_import_response(
         source_type=report.source_type,
         original_filename=report.original_filename,
         raw_text=report.raw_text,
+        page_count=page_count,
+        extraction_method=extraction_method,
         status=report.status,
         total_items=total_items,
         pending_items=pending_items,

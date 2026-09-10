@@ -25,7 +25,7 @@ from app.schemas.progress_report import (
 from app.core.dependencies import get_current_user
 from app.services.project_service import get_project_or_404, verify_project_access, get_user_assigned_discipline
 from app.services.activity_matching_service import match_activity_for_report
-from app.services.execution_service import process_progress_update
+from app.services.execution_service import process_progress_update, verify_supervisor_discipline_authorization
 from app.services.batch_report_service import (
     read_report_file,
     auto_detect_report_mapping,
@@ -36,6 +36,7 @@ from app.services.batch_report_service import (
     build_report_item_response,
     build_report_import_response,
 )
+from app.services.document_report_service import process_document_progress_report
 
 logger = logging.getLogger(__name__)
 
@@ -253,6 +254,41 @@ def import_report_text(
     return build_report_import_response(db, report_import, current_user)
 
 
+@router.post(
+    "/{project_id}/progress-reports/import-document",
+    response_model=ProgressReportImportResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Import site document (PDF, JPG, JPEG, PNG) and extract structured work updates",
+)
+@router.post(
+    "/{project_id}/progress-reports/document",
+    response_model=ProgressReportImportResponse,
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=False,
+)
+async def import_report_document(
+    project_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Ingests PDF progress reports (text or scanned) or site images (JPG, PNG).
+    Extracts structured updates, executes activity matching, and returns a ProgressReportImport in REVIEW status.
+    """
+    project, user_discipline = verify_project_access(project_id, current_user, db)
+
+    report_import = await process_document_progress_report(
+        db=db,
+        project=project,
+        user=current_user,
+        user_discipline=user_discipline,
+        file=file,
+    )
+
+    return build_report_import_response(db, report_import, current_user)
+
+
 @router.get(
     "/{project_id}/progress-reports",
     response_model=List[ProgressReportImportListItem],
@@ -289,6 +325,16 @@ def list_progress_reports(
 
         uploader_name = r.uploaded_by.full_name if r.uploaded_by else "Unknown"
 
+        page_count = None
+        extraction_method = None
+        if r.raw_text and r.raw_text.strip().startswith("{"):
+            try:
+                meta = json.loads(r.raw_text)
+                page_count = meta.get("page_count")
+                extraction_method = meta.get("extraction_method")
+            except Exception:
+                pass
+
         results.append(
             ProgressReportImportListItem(
                 id=r.id,
@@ -297,6 +343,8 @@ def list_progress_reports(
                 uploaded_by_name=uploader_name,
                 source_type=r.source_type,
                 original_filename=r.original_filename,
+                page_count=page_count,
+                extraction_method=extraction_method,
                 status=r.status,
                 total_items=total_items,
                 pending_items=pending_items,

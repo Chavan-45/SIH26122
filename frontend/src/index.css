@@ -4626,6 +4626,117 @@ select.form-input {
   to { transform: rotate(360deg); }
 }
 
+/* Phase 13 Document & Scanned Report Ingestion Scoped Styles */
+.pr-badge-purple {
+  background-color: #FAF5FF;
+  color: #7E22CE;
+  border-color: #E9D5FF;
+}
+
+.pr-badge-teal {
+  background-color: #F0FDFA;
+  color: #0F766E;
+  border-color: #99F6E4;
+}
+
+.pr-badge-rose {
+  background-color: #FFF1F2;
+  color: #BE123C;
+  border-color: #FECDD3;
+}
+
+.pr-format-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.pr-format-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  color: var(--color-text-secondary);
+}
+
+.pr-doc-steps-box {
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pr-doc-step-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.pr-doc-step-item.active {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.pr-provenance-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.pr-text-snippet-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.25rem;
+  transition: opacity 0.12s ease;
+}
+
+.pr-text-snippet-btn:hover {
+  text-decoration: underline;
+}
+
+.pr-text-snippet-box {
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  background-color: #F8FAFC;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #334155;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
 /* Loading text */
 .pr-loading-text {
   text-align: center;

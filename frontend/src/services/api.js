@@ -921,6 +921,33 @@ export async function importReportText(token, projectId, rawText) {
 }
 
 /**
+ * Import PDF document or scanned site image report (Phase 13).
+ */
+export async function importReportDocument(token, projectId, file) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/import-document`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Document import failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to import document report' };
+  }
+}
+
+/**
  * List all progress report import sessions for project.
  */
 export async function getProgressReports(token, projectId) {

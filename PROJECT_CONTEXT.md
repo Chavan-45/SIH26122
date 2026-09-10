@@ -2,7 +2,7 @@
 
 > **Last Updated:** September 10, 2026  
 > **Repository:** SIH26122 — Intelligent Data Capture & Schedule-Linking Layer for Infrastructure Project Management  
-> **Status:** Production-Ready Demo / Active Feature Development (Phases 1–11 Complete)
+> **Status:** Production-Ready Demo / Active Feature Development (Phases 1–13 Complete)
 
 ---
 
@@ -15,10 +15,10 @@
 5. [Frontend Architecture & Component Breakdown](#5-frontend-architecture--component-breakdown)
 6. [Complete Database Structure & Entity Relationships](#6-complete-database-structure--entity-relationships)
 7. [Comprehensive API Catalog](#7-comprehensive-api-catalog)
-8. [Implemented Feature Capabilities (Phases 1–9)](#8-implemented-feature-capabilities-phases-19)
+8. [Implemented Feature Capabilities (Phases 1–13)](#8-implemented-feature-capabilities-phases-113)
 9. [Important Architectural & Design Decisions](#9-important-architectural--design-decisions)
 10. [Known Issues, Quirks & Technical Boundaries](#10-known-issues-quirks--technical-boundaries)
-11. [Current Work in Progress (Phase 10: Planner Review Center)](#11-current-work-in-progress-phase-10-planner-review-center)
+11. [Implemented Capabilities (Phases 10–13)](#11-implemented-capabilities-phases-1013)
 12. [Exact Next Steps & Implementation Roadmap](#12-exact-next-steps--implementation-roadmap)
 
 ---
@@ -664,11 +664,11 @@ If the external Gemini API is unreachable or rate-limited, the system automatica
 | **Voice Input Pipeline** | Web Speech API implementation postponed due to browser engine variance across mobile/desktop. | Future Phase: Implement robust backend Whisper / MediaRecorder audio transcription pipeline. |
 | **Database Engine** | Currently using SQLite (`sih26122.db`) with file-level locking. Suitable for local testing and single-instance demonstrations. | Production Migration: Switch connection string to PostgreSQL in `backend/app/core/config.py`. |
 | **Multiple Baseline Imports** | Only one master baseline schedule import is currently permitted per project to avoid conflicting WBS structures. | Future Phase: Add support for formal Schedule Re-baselining (e.g. Revision 01, Revision 02) with version archiving. |
-| **OCR / Scanned PDF Ingestion** | Batch report ingestion currently supports CSV, XLSX, and pasted text. Scanned raster PDFs are not yet supported. | Future Phase 11: Integrate Document AI or OCR pipeline for scanned Daily Progress Reports. |
+| **Critical Path CPM Analysis** | Progress rates and linear completion estimates are calculated; true CPM network forward/backward pass is not yet performed. | Future Phase: Implement full CPM graph topological sort & float calculation. |
 
 ---
 
-## 11. Implemented Capabilities (Phases 10 & 11)
+## 11. Implemented Capabilities (Phases 10–13)
 
 ### Phase 10: Planner Review Center
 - **Unified Review Queue (`PlannerReviewCase`)**: Aggregates unmatched items, low-confidence matches (<0.70), and flagged updates across AI chat and batch report ingestion.
@@ -686,14 +686,30 @@ If the external Gemini API is unreachable or rate-limited, the system automatica
 - **Historical Immutability**: Downloads reproduce the exact historical snapshot dynamically from `ScheduleExportItem.snapshot_json` without querying live state.
 - **Planner RBAC**: Lead Planner ownership required on all endpoints (`/api/projects/{project_id}/schedule-sync/*`); Supervisors receive HTTP 403 Forbidden.
 
+### Phase 12: Project Analytics & Forecasting
+- **100% Deterministic Engine**: 0 synthetic data points, 0 hallucinated forecasts.
+- **Activity-Count-Weighted Progress**: Standardized metric aligned with the main Dashboard.
+- **Linear Expected Progress & Variance**: Time-based progress expectation clamped between planned dates with percentage point variance.
+- **Reconstructed Historical S-Curve**: True execution timeline reconstructed directly from `ProgressUpdate` audit events across 7D, 30D, 90D, and ALL horizons.
+- **Rule-Based Risk Classification**: Explainable `HIGH`, `MEDIUM`, `LOW`, and `NORMAL` risk scoring based on variance, overdue ratio, and stall detection.
+- **Activity Velocity & Completion Forecasting**: Progress velocity calculated for active activities with honest data quality flags (`GOOD`, `LIMITED`, `INSUFFICIENT`) and indicative project completion dates.
+
+### Phase 13: Document & Scanned Progress Report Ingestion
+- **Two-Stage Multi-Format Ingestion**:
+  - **Stage 1 (Fast Text)**: Digital PDFs parsed with `pypdf` extracting text layers with exact page provenance (`source_page = page_num`).
+  - **Stage 2 (Multimodal Fallback)**: Scanned PDFs, site photos (.jpg, .jpeg, .png), and poor-text documents routed to Google Gemini 2.5 Flash for vision comprehension.
+- **Zero Silent Updates**: All extracted progress items enter `REVIEW` status requiring human supervisor verification and explicit application.
+- **Discipline-Scoped Validation & Review Center Integration**: Unmatched or low-confidence extractions cleanly surface in the Planner Review Center; out-of-discipline actions are blocked by supervisor RBAC guards.
+- **Review UI with Provenance**: Visual page provenance chips (`PDF • Page X`, `Photo Scan`), expandable raw extracted text snippets, and status badges.
+
 ---
 
 ## 12. Exact Next Steps & Implementation Roadmap
 
 ### Next Phases:
-- **Phase 12**: Document OCR & Scanned PDF Ingestion (Ingest scanned raster Daily Progress Reports via Gemini Vision).
-- **Phase 13**: Critical Path Method (CPM) & Earned Value Analysis (EVA) S-Curves (BCWS, BCWP, ACWP, SPI, CPI).
-- **Phase 14**: Automated PDF / Excel Executive Progress Summary Export for Stakeholders.
+- **Phase 14**: Critical Path Method (CPM) & Earned Value Analysis (EVA) S-Curves (BCWS, BCWP, ACWP, SPI, CPI).
+- **Phase 15**: Automated PDF / Excel Executive Progress Summary Export for Stakeholders.
+- **Phase 16**: Backend Whisper Audio Transcription Pipeline for Voice Reporting.
 
 ---
 
