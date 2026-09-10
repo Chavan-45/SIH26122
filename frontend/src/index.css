@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SIH26122 - OIL & INFRASTRUCTURE / INDUSTRIAL LIGHT DESIGN SYSTEM
+   KaryaSetu - OIL & INFRASTRUCTURE / INDUSTRIAL LIGHT DESIGN SYSTEM
    ========================================================================== */
 
 :root {
@@ -678,6 +678,478 @@ select.form-input {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
   border-color: var(--color-border-strong);
+}
+
+/* ==========================================================================
+   Portfolio Landing Page (KaryaSetu Enterprise Dashboard)
+   ========================================================================== */
+
+.portfolio-hero-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1.35rem 1.65rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.portfolio-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+.portfolio-hero-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 4px solid var(--color-accent);
+  box-shadow: 0 2px 6px rgba(23, 50, 77, 0.12);
+  flex-shrink: 0;
+}
+
+.portfolio-hero-icon.supervisor-icon {
+  background-color: #1f2937;
+  border-left-color: #f97316;
+}
+
+.portfolio-hero-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.portfolio-hero-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.2rem;
+  line-height: 1.4;
+}
+
+.portfolio-hero-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.portfolio-hero-meta strong {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.portfolio-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Portfolio Summary / KPI Row */
+.portfolio-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .portfolio-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.portfolio-kpi-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.15rem 1.35rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.35rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.portfolio-kpi-card:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-card);
+}
+
+.portfolio-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.portfolio-kpi-label {
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.portfolio-kpi-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolio-kpi-card.kpi-active .portfolio-kpi-icon-wrap {
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.portfolio-kpi-card.kpi-planning .portfolio-kpi-icon-wrap {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.portfolio-kpi-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  line-height: 1.1;
+  margin-top: 0.25rem;
+}
+
+.portfolio-kpi-subtext {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Portfolio Section Headers */
+.portfolio-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.25rem;
+}
+
+.portfolio-section-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.01em;
+}
+
+.portfolio-section-desc {
+  font-size: 0.825rem;
+  color: var(--color-text-secondary);
+}
+
+/* Portfolio Projects Responsive Grid (3 Desktop, 2 Tablet, 1 Mobile) */
+.portfolio-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 1024px) {
+  .portfolio-projects-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .portfolio-projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Polished Project Card */
+.portfolio-project-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1.35rem;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.85rem;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.portfolio-project-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+}
+
+.portfolio-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.portfolio-card-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid rgba(23, 50, 77, 0.15);
+}
+
+.portfolio-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
+
+.portfolio-card-location {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.825rem;
+  color: var(--color-text-secondary);
+}
+
+.portfolio-card-discipline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.775rem;
+  color: var(--color-accent-hover);
+  background-color: var(--color-accent-light);
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid rgba(233, 122, 31, 0.25);
+  align-self: flex-start;
+}
+
+.portfolio-card-divider {
+  height: 1px;
+  background-color: var(--color-border-subtle);
+  margin: 0.15rem 0;
+}
+
+.portfolio-card-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+}
+
+.portfolio-date-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.portfolio-date-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.portfolio-date-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+}
+
+.portfolio-card-footer {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.btn-portfolio-open {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-portfolio-open:hover {
+  background-color: var(--color-primary-hover);
+  color: #FFFFFF;
+}
+
+/* Portfolio Workflow Section */
+.portfolio-workflow-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1.5rem 1.65rem;
+  box-shadow: var(--shadow-sm);
+  margin-top: 0.75rem;
+}
+
+.workflow-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 1.25rem;
+}
+
+.workflow-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workflow-subtitle {
+  font-size: 0.825rem;
+  color: var(--color-text-secondary);
+}
+
+.workflow-stages-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.85rem;
+  position: relative;
+}
+
+@media (max-width: 1024px) {
+  .workflow-stages-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .workflow-stages-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workflow-stage-item {
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  padding: 1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: relative;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.workflow-stage-item:hover {
+  border-color: var(--color-border-strong);
+  background-color: #FFFFFF;
+}
+
+.workflow-stage-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.15rem;
+}
+
+.workflow-stage-num {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  background-color: var(--color-accent-light);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.workflow-stage-icon {
+  color: var(--color-primary);
+}
+
+.workflow-stage-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.25;
+}
+
+.workflow-stage-desc {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* Empty Project State */
+.portfolio-empty-box {
+  background-color: var(--color-surface);
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: 12px;
+  padding: 3.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  max-width: 600px;
+  margin: 1rem auto;
+}
+
+.portfolio-empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolio-empty-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.portfolio-empty-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  max-width: 460px;
+  line-height: 1.5;
 }
 
 /* ==========================================================================
@@ -1584,18 +2056,30 @@ select.form-input {
 .workspace-nav-tabs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: flex-start;
+  gap: 0.25rem;
   border-bottom: 2px solid var(--color-border);
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.workspace-nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  font-size: 0.9rem;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.835rem;
   font-weight: 600;
   color: var(--color-text-secondary);
   background: transparent;
@@ -1603,18 +2087,78 @@ select.form-input {
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  border-radius: 6px 6px 0 0;
+  line-height: 1.25;
 }
 
 .tab-btn:hover {
   color: var(--color-primary);
-  background-color: rgba(23, 50, 77, 0.03);
+  background-color: rgba(23, 50, 77, 0.04);
 }
 
 .tab-btn.active {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
   font-weight: 700;
+  background-color: rgba(23, 50, 77, 0.02);
+}
+
+.tab-btn svg {
+  flex-shrink: 0;
+}
+
+.tab-readonly-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  background-color: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #BAE6FD;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.2rem;
+  flex-shrink: 0;
+}
+
+.tab-btn.active .tab-readonly-badge {
+  background-color: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.tab-count-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.2rem;
+  flex-shrink: 0;
+}
+
+.tab-btn.active .tab-count-badge {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: rgba(23, 50, 77, 0.2);
+}
+
+@media (max-width: 1200px) {
+  .tab-btn {
+    padding: 0.6rem 0.55rem;
+    font-size: 0.815rem;
+    gap: 0.35rem;
+  }
 }
 
 /* Overview KPIs */

@@ -1,5 +1,5 @@
 /**
- * Centralized API client service for SIH26122.
+ * Centralized API client service for KaryaSetu.
  * The backend base URL is dynamically loaded from environment variables (VITE_API_BASE_URL).
  */
 

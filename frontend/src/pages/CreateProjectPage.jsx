@@ -249,7 +249,7 @@ export default function CreateProjectPage() {
       </main>
 
       <footer className="footer">
-        <p>© 2026 SIH26122 • Phase 3 Project Management &amp; Access Controls</p>
+        <p>© 2026 KaryaSetu • Infrastructure Project Intelligence</p>
       </footer>
     </div>
   );

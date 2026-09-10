@@ -13,7 +13,7 @@ export default function Navbar({ workspaceTitle }) {
             <HardHat size={22} className="logo-icon-svg" />
           </div>
           <div className="logo-text-block">
-            <div className="logo-brand">SIH26122</div>
+            <div className="logo-brand">KaryaSetu</div>
             <div className="logo-subtitle">Infrastructure Project Intelligence</div>
           </div>
         </div>

@@ -50,7 +50,7 @@ export default function LoginPage() {
             <HardHat size={22} className="logo-icon-svg" />
           </div>
           <div className="logo-text-block">
-            <div className="logo-brand">SIH26122</div>
+            <div className="logo-brand">KaryaSetu</div>
             <div className="logo-subtitle">Infrastructure Project Intelligence</div>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function LoginPage() {
       </div>
 
       <footer className="footer auth-page-footer">
-        <p>© 2026 SIH26122 • Phase 2 Authentication &amp; Role Management</p>
+        <p>© 2026 KaryaSetu • Infrastructure Project Intelligence</p>
       </footer>
     </div>
   );

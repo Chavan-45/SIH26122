@@ -708,7 +708,7 @@ export default function ProjectWorkspace() {
             className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
           >
-            <Building2 size={16} />
+            <Building2 size={15} />
             <span>Dashboard</span>
           </button>
           <button
@@ -716,10 +716,10 @@ export default function ProjectWorkspace() {
             className={`tab-btn ${activeTab === 'schedule' ? 'active' : ''}`}
             onClick={() => setActiveTab('schedule')}
           >
-            <FileSpreadsheet size={16} />
+            <FileSpreadsheet size={15} />
             <span>Schedule Baseline</span>
             {scheduleStatus?.has_schedule && (
-              <span className="level-badge font-mono" style={{ marginLeft: '0.25rem' }}>
+              <span className="tab-count-badge font-mono">
                 {scheduleStatus.total_activities}
               </span>
             )}
@@ -729,9 +729,9 @@ export default function ProjectWorkspace() {
             className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
             onClick={() => setActiveTab('ai')}
           >
-            <Bot size={16} />
+            <Bot size={15} />
             <span>Project AI</span>
-            <span className="level-badge font-mono" style={{ marginLeft: '0.25rem', background: '#0284c7', color: '#fff' }}>
+            <span className="tab-readonly-badge font-mono">
               READ-ONLY
             </span>
           </button>
@@ -740,7 +740,7 @@ export default function ProjectWorkspace() {
             className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
             onClick={() => setActiveTab('reports')}
           >
-            <FileSpreadsheet size={16} />
+            <FileSpreadsheet size={15} />
             <span>Progress Reports</span>
           </button>
           {isPlannerOwner && (
@@ -749,7 +749,7 @@ export default function ProjectWorkspace() {
               className={`tab-btn ${activeTab === 'review-center' ? 'active' : ''}`}
               onClick={() => setActiveTab('review-center')}
             >
-              <ClipboardCheck size={16} />
+              <ClipboardCheck size={15} />
               <span>Review Center</span>
             </button>
           )}
@@ -759,7 +759,7 @@ export default function ProjectWorkspace() {
               className={`tab-btn ${activeTab === 'schedule-sync' ? 'active' : ''}`}
               onClick={() => setActiveTab('schedule-sync')}
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={15} />
               <span>Schedule Sync</span>
             </button>
           )}
@@ -768,7 +768,7 @@ export default function ProjectWorkspace() {
             className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => setActiveTab('analytics')}
           >
-            <TrendingUp size={16} />
+            <TrendingUp size={15} />
             <span>Analytics</span>
           </button>
           <button
@@ -776,7 +776,7 @@ export default function ProjectWorkspace() {
             className={`tab-btn ${activeTab === 'memory' ? 'active' : ''}`}
             onClick={() => setActiveTab('memory')}
           >
-            <History size={16} />
+            <History size={15} />
             <span>Project Memory</span>
           </button>
           <button
@@ -784,8 +784,11 @@ export default function ProjectWorkspace() {
             className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
             onClick={() => setActiveTab('team')}
           >
-            <Users size={16} />
-            <span>Team ({members.length})</span>
+            <Users size={15} />
+            <span>Team</span>
+            <span className="tab-count-badge font-mono">
+              {members.length}
+            </span>
           </button>
         </nav>
 
@@ -1755,7 +1758,7 @@ export default function ProjectWorkspace() {
                   ))}
                 </datalist>
                 <span className="form-help-text">
-                  Supervisor must have a registered SIH26122 account with the SUPERVISOR role.
+                  Supervisor must have a registered KaryaSetu account with the SUPERVISOR role.
                 </span>
               </div>
 
@@ -2049,7 +2052,7 @@ export default function ProjectWorkspace() {
 
 
       <footer className="footer">
-        <p>© 2026 SIH26122 • Infrastructure Project Baseline &amp; Schedule Database</p>
+        <p>© 2026 KaryaSetu • Infrastructure Project Baseline &amp; Schedule Database</p>
       </footer>
     </div>
   );
