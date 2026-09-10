@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="SIH26122 Backend",
+    title="KaryaSetu Backend",
     description="Intelligent Data Capture & Schedule-Linking Layer for Infrastructure Project Management API",
     version="0.3.0",
     lifespan=lifespan,
@@ -53,7 +53,7 @@ def health_check():
     """Health check endpoint to verify backend operational status and connectivity."""
     return {
         "status": "ok",
-        "service": "SIH26122 Backend"
+        "service": "KaryaSetu Backend"
     }
 
 
