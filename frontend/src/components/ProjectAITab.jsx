@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Shield,
 } from 'lucide-react';
+import VoiceInputButton from './VoiceInputButton';
 import {
   sendAIChatMessage,
   getAIConversations,
@@ -538,6 +539,12 @@ function ProjectAITabInner({ token, project, user, assignedDiscipline, onSelectA
                   }
                   disabled={loading}
                   className="chat-input-control"
+                />
+                <VoiceInputButton
+                  disabled={loading}
+                  onTranscript={(transcriptText) => {
+                    setPromptInput((prev) => (prev ? `${prev} ${transcriptText}` : transcriptText));
+                  }}
                 />
                 <button
                   type="submit"

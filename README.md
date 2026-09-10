@@ -20,7 +20,9 @@ The platform currently includes:
 - **100% Database-Derived Real Project Control Dashboard**: Real-time project control dashboard metrics derived directly from `Project`, `Activity`, `ActivityExecution`, `ProgressUpdate`, `ProjectMember`, and `User`.
 - **Project-Specific AI Assistant (Phase 7)**: Real-time, project-scoped operational assistant powered by Google Gemini (`google-genai` SDK v2.22.0) executing 10 safe server-bound Python database tools.
 - **Natural-Language Progress Reporting & AI Schedule Linking (Phase 8)**: Allows authorized Supervisors to report real site execution using normal human language inside Project AI (e.g. *"We started foundation concreting today"*, *"Pipeline fabrication reached 60% today"*, *"Put pipeline fabrication on hold"*).
-- **EXTRACT → MATCH → REVIEW → CONFIRM → UPDATE Pipeline**: AI extracts structured execution intent, matches schedule activities via RapidFuzz hybrid scoring within authorized discipline bounds, and generates an `ExecutionReportDraft`.
+- **Voice Interface for Project AI (Phase 9)**: Adds browser-native speech recognition (Web Speech API with `en-IN` locale) directly into the Project AI message input bar.
+- **Speech-to-Text Pipeline**: Speech converts directly to editable text transcript in the existing message input. **NO AUTOMATIC SEND**, allowing human review/edit before sending.
+- **Zero Audio Storage & Confirmation Guarantee**: No raw audio files or streams are stored or transmitted. Once sent, voice transcripts follow the exact same Phase 8 human confirmation workflow prior to Phase 5 execution updates.
 - **CRITICAL GUARANTEE**: **THE AI NEVER SILENTLY UPDATES PROJECT DATA.** Human Supervisor confirmation is strictly required before calling the Phase 5 execution service.
 - **Supervisor-Only & Discipline RBAC**: Natural-language reporting is restricted to Supervisors for activities matching their assigned discipline. Planners remain strictly **READ-ONLY**; any execution report prompt from a Planner is refused.
 - **`AI_CHAT` Audit Source**: Confirmed natural-language progress updates record `source_type = "AI_CHAT"` in the append-only audit trail.
