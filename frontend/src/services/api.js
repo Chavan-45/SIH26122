@@ -835,6 +835,239 @@ export async function getAIDraft(token, projectId, draftId) {
   }
 }
 
+/* ==========================================================================
+   PHASE 9 BATCH PROGRESS REPORT INGESTION APIs
+   ========================================================================== */
+
+/**
+ * Preview spreadsheet columns and auto-detected mapping.
+ */
+export async function previewReportSpreadsheet(token, projectId, file) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/preview-spreadsheet`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Spreadsheet preview failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to preview spreadsheet' };
+  }
+}
+
+/**
+ * Import spreadsheet progress report with column mapping.
+ */
+export async function importReportSpreadsheet(token, projectId, file, mapping = {}) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mapping_json', JSON.stringify(mapping));
+
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/import-spreadsheet`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Spreadsheet import failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to import spreadsheet report' };
+  }
+}
+
+/**
+ * Import pasted free-text Daily Progress Report (DPR).
+ */
+export async function importReportText(token, projectId, rawText) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/import-text`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ raw_text: rawText }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Text report import failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to import text report' };
+  }
+}
+
+/**
+ * List all progress report import sessions for project.
+ */
+export async function getProgressReports(token, projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch progress reports (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load progress reports' };
+  }
+}
+
+/**
+ * Get progress report details and review items.
+ */
+export async function getProgressReport(token, projectId, reportId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/${reportId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to fetch progress report details (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to load progress report' };
+  }
+}
+
+/**
+ * Approve or Reject an individual progress report item.
+ */
+export async function reviewReportItem(token, projectId, reportId, itemId, action) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/${reportId}/items/${itemId}/review`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Review action failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to update review status' };
+  }
+}
+
+/**
+ * Manually assign schedule activity to a progress report item.
+ */
+export async function selectReportItemActivity(token, projectId, reportId, itemId, activityId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/${reportId}/items/${itemId}/select-activity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ activity_id: activityId }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Failed to link activity (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to link activity' };
+  }
+}
+
+/**
+ * Approve all valid pending items in report session.
+ */
+export async function bulkApproveReportItems(token, projectId, reportId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/${reportId}/bulk-approve`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Bulk approve failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to bulk approve items' };
+  }
+}
+
+/**
+ * Apply all approved progress report items via existing Phase 5 execution service.
+ */
+export async function applyProgressReport(token, projectId, reportId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/progress-reports/${reportId}/apply`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `Apply updates failed (HTTP ${response.status})`);
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unable to apply progress updates' };
+  }
+}
+
 
 
 

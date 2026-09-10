@@ -70,3 +70,18 @@ def verify_project_access(project_id: int, user: User, db: Session) -> Tuple[Pro
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Access forbidden: Role not authorized for project access",
     )
+
+
+def get_user_assigned_discipline(user: User, project_id: int, db: Session) -> Optional[str]:
+    """Retrieves assigned discipline for supervisor in project, or None for planners."""
+    if user.role == "SUPERVISOR":
+        membership = (
+            db.query(ProjectMember)
+            .filter(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == user.id,
+            )
+            .first()
+        )
+        return membership.discipline if membership else None
+    return None

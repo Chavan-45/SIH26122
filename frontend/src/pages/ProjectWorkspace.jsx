@@ -21,6 +21,7 @@ import {
 import Navbar from '../components/Navbar';
 import DashboardTab from '../components/DashboardTab';
 import ProjectAITab from '../components/ProjectAITab';
+import ProgressReportsPage from './ProgressReportsPage';
 import {
   Building2,
   Calendar,
@@ -731,6 +732,14 @@ export default function ProjectWorkspace() {
           </button>
           <button
             type="button"
+            className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reports')}
+          >
+            <FileSpreadsheet size={16} />
+            <span>Progress Reports</span>
+          </button>
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
             onClick={() => setActiveTab('team')}
           >
@@ -738,6 +747,16 @@ export default function ProjectWorkspace() {
             <span>Team ({members.length})</span>
           </button>
         </nav>
+
+        {/* TAB 0: BATCH PROGRESS REPORT INGESTION (PHASE 9) */}
+        {activeTab === 'reports' && (
+          <ProgressReportsPage
+            token={token}
+            project={project}
+            user={user}
+            assignedDiscipline={project?.assigned_discipline}
+          />
+        )}
 
         {/* TAB 1: REAL PROJECT CONTROL DASHBOARD */}
         {activeTab === 'dashboard' && (

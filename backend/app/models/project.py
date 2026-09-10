@@ -57,6 +57,12 @@ class Project(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    progress_report_imports = relationship(
+        "ProgressReportImport",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     ai_conversations = relationship(
         "AIConversation",
         back_populates="project",
