@@ -6,6 +6,7 @@ from rapidfuzz import fuzz
 
 from app.models.activity import Activity
 from app.models.activity_execution import ActivityExecution
+from app.core.activity_code_utils import normalize_activity_code, extract_and_normalize_activity_code
 
 
 def match_activity_for_report(
@@ -21,22 +22,6 @@ def match_activity_for_report(
     Candidate activity matcher for natural-language execution reporting.
     
     Returns: (matched_activity_obj, match_confidence_score, match_status_enum, alternative_candidates_list)
-    
-    Rules:
-    1. STRICT DISCIPLINE SCOPING:
-       - If user is SUPERVISOR, restrict candidate universe ONLY to activities matching user_discipline.
-       - UNASSIGNED activities or cross-discipline activities are excluded.
-    2. EXACT ACTIVITY CODE MATCH:
-       - If explicit_activity_code is provided (e.g. CIV-103), search candidate universe.
-       - If found: confidence = 1.0, status = "MATCHED_HIGH".
-    3. HYBRID FUZZY MATCHING:
-       - Match normalized activity_description against activity_code and activity_name.
-       - Calculate combination of token_set_ratio, token_sort_ratio, and partial_ratio.
-       - Boost score if execution state is compatible (e.g. START requires NOT_STARTED, COMPLETE requires IN_PROGRESS).
-    4. CONFIDENCE THRESHOLDS:
-       - HIGH: >= 0.85 -> MATCHED_HIGH
-       - MEDIUM: 0.65 - 0.84 -> MATCHED_MEDIUM
-       - LOW: < 0.65 -> UNMATCHED
     """
     # 1. Build authorized candidate activity query
     query = (
@@ -58,15 +43,21 @@ def match_activity_for_report(
         return None, 0.0, "UNMATCHED", []
 
     # 2. Check Explicit Activity Code match
-    if explicit_activity_code and explicit_activity_code.strip():
-        code_clean = explicit_activity_code.strip().upper()
+    code_clean = extract_and_normalize_activity_code(explicit_activity_code) if explicit_activity_code else None
+    if not code_clean and explicit_activity_code:
+        code_clean = normalize_activity_code(explicit_activity_code)
+    if not code_clean and activity_description:
+        code_clean = extract_and_normalize_activity_code(activity_description)
+
+    if code_clean:
         for act, exec_obj in candidates:
-            if act.activity_code.upper() == code_clean:
+            if normalize_activity_code(act.activity_code) == code_clean:
                 return act, 1.0, "MATCHED_HIGH", []
 
         # Substring/partial match on explicit code
         for act, exec_obj in candidates:
-            if code_clean in act.activity_code.upper():
+            act_norm = normalize_activity_code(act.activity_code)
+            if code_clean and (code_clean in act_norm or act_norm in code_clean):
                 return act, 0.95, "MATCHED_HIGH", []
 
     # 3. Description Fuzzy Matching

@@ -2749,6 +2749,14 @@ select.form-input {
 }
 
 /* Phase 9: Voice Input Button & Status */
+.ai-voice-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  position: relative;
+  flex-shrink: 0;
+}
+
 .btn-voice-input {
   background-color: var(--color-surface);
   color: var(--color-text-secondary);
@@ -2782,6 +2790,43 @@ select.form-input {
 .btn-voice-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.ai-voice-listening-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #DC2626;
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  padding: 0.25rem 0.55rem;
+  border-radius: 12px;
+  white-space: nowrap;
+  animation: aiVoiceFadeIn 0.15s ease-in;
+}
+
+@keyframes aiVoiceFadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ai-voice-error-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.4rem;
+  background-color: #1E293B;
+  color: #FFFFFF;
+  font-size: 0.725rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 30;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  pointer-events: none;
 }
 
 .ai-voice-mic-icon {

@@ -542,8 +542,9 @@ function ProjectAITabInner({ token, project, user, assignedDiscipline, onSelectA
                 />
                 <VoiceInputButton
                   disabled={loading}
-                  onTranscript={(transcriptText) => {
-                    setPromptInput((prev) => (prev ? `${prev} ${transcriptText}` : transcriptText));
+                  currentInputText={promptInput}
+                  onTranscript={(newFullText) => {
+                    setPromptInput(newFullText);
                   }}
                 />
                 <button

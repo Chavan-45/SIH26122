@@ -10,6 +10,7 @@ from app.models.progress_update import ProgressUpdate
 from app.models.project_member import ProjectMember
 from app.models.user import User
 from app.core.datetime_utils import get_today_date
+from app.core.activity_code_utils import normalize_activity_code, extract_and_normalize_activity_code
 
 
 # ============================================================================
@@ -297,25 +298,26 @@ def get_upcoming_deadlines(
 
 def get_activity_details(db: Session, project_id: int, activity_code: str) -> Dict[str, Any]:
     """Retrieves full baseline and execution details for a specific activity code."""
-    activity = (
-        db.query(Activity)
-        .filter(
-            Activity.project_id == project_id,
-            func.upper(Activity.activity_code) == activity_code.strip().upper(),
-        )
-        .first()
-    )
+    extracted_target = extract_and_normalize_activity_code(activity_code)
+    norm_target = extracted_target if extracted_target else normalize_activity_code(activity_code)
+    raw_clean = activity_code.strip().upper()
 
+    all_activities = db.query(Activity).filter(Activity.project_id == project_id).all()
+    activity = None
+
+    # 1. Exact normalized match
+    for act in all_activities:
+        if normalize_activity_code(act.activity_code) == norm_target:
+            activity = act
+            break
+
+    # 2. Substring match fallback
     if not activity:
-        # Substring match fallback
-        activity = (
-            db.query(Activity)
-            .filter(
-                Activity.project_id == project_id,
-                Activity.activity_code.ilike(f"%{activity_code.strip()}%"),
-            )
-            .first()
-        )
+        for act in all_activities:
+            act_norm = normalize_activity_code(act.activity_code)
+            if norm_target and (norm_target in act_norm or act_norm in norm_target or raw_clean in act.activity_code.upper()):
+                activity = act
+                break
 
     if not activity:
         return {"error": f"Activity code '{activity_code}' not found in project ID {project_id}."}
@@ -387,13 +389,40 @@ def search_activities(
     )
 
     if query and query.strip():
-        search_term = f"%{query.strip()}%"
-        q = q.filter(
-            (Activity.activity_code.ilike(search_term))
-            | (Activity.activity_name.ilike(search_term))
-            | (Activity.wbs_code.ilike(search_term))
-            | (Activity.wbs_name.ilike(search_term))
-        )
+        search_raw = query.strip()
+        search_extracted = extract_and_normalize_activity_code(search_raw)
+        search_norm = search_extracted if search_extracted else normalize_activity_code(search_raw)
+        search_term = f"%{search_raw}%"
+
+        # If query resolves to a valid normalized activity code (e.g. CIV-101, PIP-201)
+        if search_norm and "-" in search_norm:
+            all_proj_acts = db.query(Activity).filter(Activity.project_id == project_id).all()
+            matching_ids = [
+                act.id for act in all_proj_acts
+                if search_norm == normalize_activity_code(act.activity_code) or search_norm in normalize_activity_code(act.activity_code)
+            ]
+            if matching_ids:
+                q = q.filter(
+                    (Activity.id.in_(matching_ids))
+                    | (Activity.activity_code.ilike(search_term))
+                    | (Activity.activity_name.ilike(search_term))
+                    | (Activity.wbs_code.ilike(search_term))
+                    | (Activity.wbs_name.ilike(search_term))
+                )
+            else:
+                q = q.filter(
+                    (Activity.activity_code.ilike(search_term))
+                    | (Activity.activity_name.ilike(search_term))
+                    | (Activity.wbs_code.ilike(search_term))
+                    | (Activity.wbs_name.ilike(search_term))
+                )
+        else:
+            q = q.filter(
+                (Activity.activity_code.ilike(search_term))
+                | (Activity.activity_name.ilike(search_term))
+                | (Activity.wbs_code.ilike(search_term))
+                | (Activity.wbs_name.ilike(search_term))
+            )
 
     # Supervisor restriction
     if user_role == "SUPERVISOR" and user_discipline:

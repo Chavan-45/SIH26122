@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 from app.core.config import settings
+from app.core.activity_code_utils import normalize_activity_code, extract_and_normalize_activity_code
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,8 @@ def classify_intent_deterministic(prompt: str) -> str:
         return "EXECUTION_REPORT"
 
     # Check for explicit code + reporting status
-    if re.search(r"\b[A-Za-z]{2,5}-\d{1,5}\b", prompt) and any(w in lowered for w in ["complete", "started", "done", "progress", "hold", "resume"]):
+    code = extract_and_normalize_activity_code(prompt)
+    if code and any(w in lowered for w in ["complete", "started", "done", "progress", "hold", "resume"]):
         return "EXECUTION_REPORT"
 
     return "PROJECT_QUERY"
@@ -68,8 +70,7 @@ def parse_execution_report_fallback(prompt: str) -> ExecutionReportExtraction:
     lowered = prompt.strip().lower()
 
     # 1. Explicit activity code
-    code_match = re.search(r"\b([A-Za-z]{2,5}-\d{1,5})\b", prompt, re.IGNORECASE)
-    explicit_code = code_match.group(1).upper() if code_match else None
+    explicit_code = extract_and_normalize_activity_code(prompt)
 
     # 2. Update type
     update_type = "PROGRESS"

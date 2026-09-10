@@ -430,8 +430,51 @@ class TestPhase8NaturalLanguageReporting(unittest.TestCase):
             )
         self.db.rollback()
 
+    def test_11_activity_code_normalization(self):
+        """Test extraction and normalization of activity code variants inside natural language sentences."""
+        from app.core.activity_code_utils import normalize_activity_code, extract_and_normalize_activity_code
+        from app.ai.tools import get_activity_details, search_activities
+        from app.services.activity_matching_service import match_activity_for_report
+
+        # 1. Test normalize_activity_code helper directly
+        self.assertEqual(normalize_activity_code("CIV-101"), "CIV-101")
+        self.assertEqual(normalize_activity_code("civ-101"), "CIV-101")
+        self.assertEqual(normalize_activity_code("CIV 101"), "CIV-101")
+        self.assertEqual(normalize_activity_code("civ 101"), "CIV-101")
+        self.assertEqual(normalize_activity_code("CIV_101"), "CIV-101")
+        self.assertEqual(normalize_activity_code("civ_101"), "CIV-101")
+        self.assertEqual(normalize_activity_code(" pip 201 "), "PIP-201")
+
+        # 2. Test extract_and_normalize_activity_code from natural language sentences
+        self.assertEqual(extract_and_normalize_activity_code("status of civ-101"), "CIV-101")
+        self.assertEqual(extract_and_normalize_activity_code("status of civ 101"), "CIV-101")
+        self.assertEqual(extract_and_normalize_activity_code("What is CIV 101?"), "CIV-101")
+        self.assertEqual(extract_and_normalize_activity_code("tell me about civ_101"), "CIV-101")
+        self.assertEqual(extract_and_normalize_activity_code("progress of PIP 201"), "PIP-201")
+        self.assertEqual(extract_and_normalize_activity_code("What is ELE 301?"), "ELE-301")
+        self.assertIsNone(extract_and_normalize_activity_code("What activities are overdue?"))
+
+        # 3. Test get_activity_details with sentence containing space variant "status of civ 103"
+        res_space = get_activity_details(self.db, self.project.id, "status of civ 103")
+        self.assertNotIn("error", res_space)
+        self.assertEqual(res_space["activity_code"], "CIV-103")
+
+        # 4. Test match_activity_for_report with sentence description containing code
+        act, conf, match_stat, _ = match_activity_for_report(
+            db=self.db,
+            project_id=self.project.id,
+            user_role="SUPERVISOR",
+            user_discipline="PIPING",
+            activity_description="PIP 201 is 20% complete",
+        )
+        self.assertIsNotNone(act)
+        self.assertEqual(act.activity_code, "PIP-201")
+        self.assertEqual(conf, 1.0)
+        self.assertEqual(match_stat, "MATCHED_HIGH")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
