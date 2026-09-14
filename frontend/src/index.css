@@ -583,6 +583,7 @@ select.form-input {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
 }
 
 .page-header-row {
@@ -2053,25 +2054,46 @@ select.form-input {
    Phase 4: Workspace Navigation Tabs & Schedule UI
    ========================================================================== */
 
+.workspace-nav-tabs-wrapper {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(23, 50, 77, 0.2) transparent;
+}
+
+.workspace-nav-tabs-wrapper::-webkit-scrollbar {
+  height: 4px;
+}
+
+.workspace-nav-tabs-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workspace-nav-tabs-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(23, 50, 77, 0.18);
+  border-radius: 4px;
+}
+
+.workspace-nav-tabs-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(23, 50, 77, 0.35);
+}
+
 .workspace-nav-tabs {
   display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+  min-width: 100%;
   align-items: center;
   justify-content: flex-start;
   gap: 0.25rem;
   border-bottom: 2px solid var(--color-border);
-  margin-top: 0.25rem;
-  margin-bottom: 0.75rem;
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.workspace-nav-tabs::-webkit-scrollbar {
-  display: none;
 }
 
 .tab-btn {
@@ -2088,7 +2110,7 @@ select.form-input {
   margin-bottom: -2px;
   cursor: pointer;
   white-space: nowrap;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
   border-radius: 6px 6px 0 0;
   line-height: 1.25;

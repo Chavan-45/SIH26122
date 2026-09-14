@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getProject,
@@ -100,8 +100,57 @@ export default function ProjectWorkspace() {
   const { projectId } = useParams();
   const { token, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const VALID_TABS = [
+    'dashboard',
+    'schedule',
+    'ai',
+    'reports',
+    'review-center',
+    'schedule-sync',
+    'analytics',
+    'memory',
+    'team',
+  ];
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'dashboard'
+  );
+
+  const navScrollRef = useRef(null);
+
+  // Sync activeTab when URL search param changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams, activeTab]);
+
+  // Tab change handler that updates state and URL search param
+  const handleTabChange = useCallback((tabKey) => {
+    setActiveTab(tabKey);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tabKey);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Auto-scroll active tab into view horizontally without vertical jump
+  useEffect(() => {
+    if (navScrollRef.current) {
+      const activeBtn = navScrollRef.current.querySelector('.tab-btn.active');
+      if (activeBtn) {
+        activeBtn.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest',
+        });
+      }
+    }
+  }, [activeTab]);
 
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState([]);
@@ -560,7 +609,7 @@ export default function ProjectWorkspace() {
         showTemporarySuccess(`${res.data.activities_imported} baseline activities imported successfully!`);
         // Refresh project data & schedule status
         fetchProjectData();
-        setActiveTab('schedule');
+        handleTabChange('schedule');
       } else {
         setImportError(res.error || 'Failed to import schedule.');
       }
@@ -702,95 +751,97 @@ export default function ProjectWorkspace() {
         </section>
 
         {/* Project Sub-navigation Tabs */}
-        <nav className="workspace-nav-tabs">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <Building2 size={15} />
-            <span>Dashboard</span>
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'schedule' ? 'active' : ''}`}
-            onClick={() => setActiveTab('schedule')}
-          >
-            <FileSpreadsheet size={15} />
-            <span>Schedule Baseline</span>
-            {scheduleStatus?.has_schedule && (
-              <span className="tab-count-badge font-mono">
-                {scheduleStatus.total_activities}
+        <div className="workspace-nav-tabs-wrapper" ref={navScrollRef}>
+          <nav className="workspace-nav-tabs">
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => handleTabChange('dashboard')}
+            >
+              <Building2 size={15} />
+              <span>Dashboard</span>
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'schedule' ? 'active' : ''}`}
+              onClick={() => handleTabChange('schedule')}
+            >
+              <FileSpreadsheet size={15} />
+              <span>Schedule Baseline</span>
+              {scheduleStatus?.has_schedule && (
+                <span className="tab-count-badge font-mono">
+                  {scheduleStatus.total_activities}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
+              onClick={() => handleTabChange('ai')}
+            >
+              <Bot size={15} />
+              <span>Project AI</span>
+              <span className="tab-readonly-badge font-mono">
+                READ-ONLY
               </span>
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+              onClick={() => handleTabChange('reports')}
+            >
+              <FileSpreadsheet size={15} />
+              <span>Progress Reports</span>
+            </button>
+            {isPlannerOwner && (
+              <button
+                type="button"
+                className={`tab-btn ${activeTab === 'review-center' ? 'active' : ''}`}
+                onClick={() => handleTabChange('review-center')}
+              >
+                <ClipboardCheck size={15} />
+                <span>Review Center</span>
+              </button>
             )}
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ai')}
-          >
-            <Bot size={15} />
-            <span>Project AI</span>
-            <span className="tab-readonly-badge font-mono">
-              READ-ONLY
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reports')}
-          >
-            <FileSpreadsheet size={15} />
-            <span>Progress Reports</span>
-          </button>
-          {isPlannerOwner && (
+            {isPlannerOwner && (
+              <button
+                type="button"
+                className={`tab-btn ${activeTab === 'schedule-sync' ? 'active' : ''}`}
+                onClick={() => handleTabChange('schedule-sync')}
+              >
+                <RefreshCw size={15} />
+                <span>Schedule Sync</span>
+              </button>
+            )}
             <button
               type="button"
-              className={`tab-btn ${activeTab === 'review-center' ? 'active' : ''}`}
-              onClick={() => setActiveTab('review-center')}
+              className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+              onClick={() => handleTabChange('analytics')}
             >
-              <ClipboardCheck size={15} />
-              <span>Review Center</span>
+              <TrendingUp size={15} />
+              <span>Analytics</span>
             </button>
-          )}
-          {isPlannerOwner && (
             <button
               type="button"
-              className={`tab-btn ${activeTab === 'schedule-sync' ? 'active' : ''}`}
-              onClick={() => setActiveTab('schedule-sync')}
+              className={`tab-btn ${activeTab === 'memory' ? 'active' : ''}`}
+              onClick={() => handleTabChange('memory')}
             >
-              <RefreshCw size={15} />
-              <span>Schedule Sync</span>
+              <History size={15} />
+              <span>Project Memory</span>
             </button>
-          )}
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
-          >
-            <TrendingUp size={15} />
-            <span>Analytics</span>
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'memory' ? 'active' : ''}`}
-            onClick={() => setActiveTab('memory')}
-          >
-            <History size={15} />
-            <span>Project Memory</span>
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
-            onClick={() => setActiveTab('team')}
-          >
-            <Users size={15} />
-            <span>Team</span>
-            <span className="tab-count-badge font-mono">
-              {members.length}
-            </span>
-          </button>
-        </nav>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'team' ? 'active' : ''}`}
+              onClick={() => handleTabChange('team')}
+            >
+              <Users size={15} />
+              <span>Team</span>
+              <span className="tab-count-badge font-mono">
+                {members.length}
+              </span>
+            </button>
+          </nav>
+        </div>
 
         {/* TAB 0: BATCH PROGRESS REPORT INGESTION (PHASE 9) */}
         {activeTab === 'reports' && (
@@ -855,7 +906,7 @@ export default function ProjectWorkspace() {
             isPlannerOwner={isPlannerOwner}
             assignedDiscipline={project?.assigned_discipline}
             onSelectActivity={(actId) => handleSelectActivityById(actId)}
-            onNavigateToSchedule={() => setActiveTab('schedule')}
+            onNavigateToSchedule={() => handleTabChange('schedule')}
           />
         )}
 
