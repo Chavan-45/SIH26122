@@ -62,13 +62,14 @@ project = Project(
 db.add(project)
 db.commit()
 db.refresh(project)
+project_id = project.id
 
 # ---------------------------------------------------------------------------
 # FIX 1: planner-review execution changes must stay rollbackable until the
 # caller performs the final review/source/execution commit.
 # ---------------------------------------------------------------------------
 atomic_activity = Activity(
-    project_id=project.id,
+    project_id=project_id,
     activity_code="CIV-ATOMIC-01",
     activity_name="Atomicity Test Activity",
     discipline="CIVIL",
@@ -78,6 +79,7 @@ atomic_activity = Activity(
 db.add(atomic_activity)
 db.commit()
 db.refresh(atomic_activity)
+atomic_activity_id = atomic_activity.id
 
 request = ProgressReportRequest(
     update_type=UpdateTypeEnum.START,
@@ -88,8 +90,8 @@ request = ProgressReportRequest(
 
 process_progress_update(
     db=db,
-    project_id=project.id,
-    activity_id=atomic_activity.id,
+    project_id=project_id,
+    activity_id=atomic_activity_id,
     user=planner,
     report_req=request,
     source_type="REPORT_IMPORT",
@@ -98,33 +100,33 @@ process_progress_update(
 )
 
 # The rows are visible inside the current transaction after flush...
-assert db.query(ActivityExecution).filter(ActivityExecution.activity_id == atomic_activity.id).first() is not None
-assert db.query(ProgressUpdate).filter(ProgressUpdate.activity_id == atomic_activity.id).count() == 1
+assert db.query(ActivityExecution).filter(ActivityExecution.activity_id == atomic_activity_id).first() is not None
+assert db.query(ProgressUpdate).filter(ProgressUpdate.activity_id == atomic_activity_id).count() == 1
 
 # ...but a rollback must remove both because process_progress_update did not commit.
 db.rollback()
 db.close()
 
 db = SessionLocal()
-assert db.query(ActivityExecution).filter(ActivityExecution.activity_id == atomic_activity.id).first() is None
-assert db.query(ProgressUpdate).filter(ProgressUpdate.activity_id == atomic_activity.id).count() == 0
+assert db.query(ActivityExecution).filter(ActivityExecution.activity_id == atomic_activity_id).first() is None
+assert db.query(ProgressUpdate).filter(ProgressUpdate.activity_id == atomic_activity_id).count() == 0
 print("[PASS] Planner-review execution update remains atomic and rollbackable.")
 
 # ---------------------------------------------------------------------------
 # FIX 2: supervisor dashboard response must not contain another discipline.
 # ---------------------------------------------------------------------------
-project = db.query(Project).filter(Project.id == project.id).first()
+project = db.query(Project).filter(Project.id == project_id).first()
 planner = db.query(User).filter(User.email == "planner-core@test.com").first()
 supervisor = db.query(User).filter(User.email == "civil-core@test.com").first()
 
 membership = ProjectMember(
-    project_id=project.id,
+    project_id=project_id,
     user_id=supervisor.id,
     discipline="CIVIL",
 )
 
 civil_activity = Activity(
-    project_id=project.id,
+    project_id=project_id,
     activity_code="CIV-SCOPE-01",
     activity_name="Civil Scoped Activity",
     discipline="CIVIL",
@@ -132,7 +134,7 @@ civil_activity = Activity(
     planned_finish=today + timedelta(days=2),
 )
 piping_activity = Activity(
-    project_id=project.id,
+    project_id=project_id,
     activity_code="PIP-SCOPE-01",
     activity_name="Piping Hidden Activity",
     discipline="PIPING",
@@ -146,7 +148,7 @@ db.refresh(civil_activity)
 db.refresh(piping_activity)
 
 civil_exec = ActivityExecution(
-    project_id=project.id,
+    project_id=project_id,
     activity_id=civil_activity.id,
     actual_start=today - timedelta(days=1),
     progress_percentage=40,
@@ -154,7 +156,7 @@ civil_exec = ActivityExecution(
     last_updated_by_id=supervisor.id,
 )
 piping_exec = ActivityExecution(
-    project_id=project.id,
+    project_id=project_id,
     activity_id=piping_activity.id,
     actual_start=today - timedelta(days=1),
     progress_percentage=90,
@@ -166,7 +168,7 @@ db.add_all([civil_exec, piping_exec])
 db.commit()
 
 civil_update = ProgressUpdate(
-    project_id=project.id,
+    project_id=project_id,
     activity_id=civil_activity.id,
     reported_by_id=supervisor.id,
     update_type="PROGRESS",
@@ -176,7 +178,7 @@ civil_update = ProgressUpdate(
     source_type="MANUAL",
 )
 piping_update = ProgressUpdate(
-    project_id=project.id,
+    project_id=project_id,
     activity_id=piping_activity.id,
     reported_by_id=supervisor.id,
     update_type="PROGRESS",
