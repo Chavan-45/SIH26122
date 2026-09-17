@@ -28,6 +28,11 @@ def get_project_dashboard_data(
 ) -> ProjectDashboardResponse:
     today = get_today_date()
 
+    # Normalize supervisor scope once. For planners this remains None and the
+    # dashboard stays project-wide. For supervisors it becomes the hard backend
+    # boundary used by every dashboard query below.
+    scoped_discipline = assigned_discipline.strip().upper() if assigned_discipline else None
+
     # 1. Project Info Header
     days_until_finish = None
     deadline_label = "No planned end date"
@@ -52,18 +57,21 @@ def get_project_dashboard_data(
         deadline_label=deadline_label,
     )
 
-    # 2. Bulk query activities and left join activity executions
-    activities_with_exec = (
+    # 2. Bulk query activities and left join activity executions.
+    # IMPORTANT: supervisors are filtered in SQL before any summary, schedule
+    # health, deadline, or variance calculation is performed.
+    activities_query = (
         db.query(Activity, ActivityExecution)
         .outerjoin(ActivityExecution, Activity.id == ActivityExecution.activity_id)
         .filter(Activity.project_id == project.id)
-        .all()
     )
+    if scoped_discipline:
+        activities_query = activities_query.filter(func.upper(Activity.discipline) == scoped_discipline)
 
+    activities_with_exec = activities_query.all()
     total_activities = len(activities_with_exec)
 
     if total_activities == 0:
-        # Handle empty project schedule state cleanly
         summary = DashboardSummary(
             total_activities=0,
             overall_progress=0.0,
@@ -88,9 +96,9 @@ def get_project_dashboard_data(
             average_start_variance_days=None,
         )
         supervisor_summary = None
-        if assigned_discipline:
+        if scoped_discipline:
             supervisor_summary = SupervisorDisciplineSummary(
-                assigned_discipline=assigned_discipline,
+                assigned_discipline=scoped_discipline,
                 total_activities=0,
                 overall_progress=0.0,
                 not_started=0,
@@ -117,7 +125,6 @@ def get_project_dashboard_data(
             supervisor_summary=supervisor_summary,
         )
 
-    # Counters & collections
     progress_sum = 0.0
     status_counts = {"NOT_STARTED": 0, "IN_PROGRESS": 0, "ON_HOLD": 0, "COMPLETED": 0}
 
@@ -182,7 +189,6 @@ def get_project_dashboard_data(
         elif exec_status == "COMPLETED":
             disc_entry["completed"] += 1
 
-        # Check baseline vs actual adherence
         if activity.planned_start and activity.planned_start <= today:
             scheduled_to_have_started += 1
 
@@ -206,97 +212,85 @@ def get_project_dashboard_data(
             else:
                 completed_on_time_or_early_count += 1
 
-        # Check Overdue condition: planned_finish < today AND execution_status != COMPLETED
-        is_overdue = False
         overdue_days_val = None
         if activity.planned_finish and activity.planned_finish < today and exec_status != "COMPLETED":
-            is_overdue = True
             overdue_days_val = (today - activity.planned_finish).days
             disc_entry["overdue"] += 1
 
-            act_summary = ActivityDashboardSummary(
-                activity_id=activity.id,
-                activity_code=activity.activity_code,
-                activity_name=activity.activity_name,
-                discipline=disc,
-                planned_start=activity.planned_start,
-                planned_finish=activity.planned_finish,
-                actual_start=act_start,
-                actual_finish=act_finish,
-                progress_percentage=prog_pct,
-                execution_status=exec_status,
-                overdue_days=overdue_days_val,
-                wbs_code=activity.wbs_code,
+            overdue_list.append(
+                ActivityDashboardSummary(
+                    activity_id=activity.id,
+                    activity_code=activity.activity_code,
+                    activity_name=activity.activity_name,
+                    discipline=disc,
+                    planned_start=activity.planned_start,
+                    planned_finish=activity.planned_finish,
+                    actual_start=act_start,
+                    actual_finish=act_finish,
+                    progress_percentage=prog_pct,
+                    execution_status=exec_status,
+                    overdue_days=overdue_days_val,
+                    wbs_code=activity.wbs_code,
+                )
             )
-            overdue_list.append(act_summary)
 
-        # Check Scheduled Today condition: planned_start <= today <= planned_finish AND execution_status != COMPLETED
         if (
             activity.planned_start
             and activity.planned_finish
             and activity.planned_start <= today <= activity.planned_finish
             and exec_status != "COMPLETED"
         ):
-            act_summary = ActivityDashboardSummary(
-                activity_id=activity.id,
-                activity_code=activity.activity_code,
-                activity_name=activity.activity_name,
-                discipline=disc,
-                planned_start=activity.planned_start,
-                planned_finish=activity.planned_finish,
-                actual_start=act_start,
-                actual_finish=act_finish,
-                progress_percentage=prog_pct,
-                execution_status=exec_status,
-                days_until_finish=(activity.planned_finish - today).days,
-                wbs_code=activity.wbs_code,
+            today_work_list.append(
+                ActivityDashboardSummary(
+                    activity_id=activity.id,
+                    activity_code=activity.activity_code,
+                    activity_name=activity.activity_name,
+                    discipline=disc,
+                    planned_start=activity.planned_start,
+                    planned_finish=activity.planned_finish,
+                    actual_start=act_start,
+                    actual_finish=act_finish,
+                    progress_percentage=prog_pct,
+                    execution_status=exec_status,
+                    days_until_finish=(activity.planned_finish - today).days,
+                    wbs_code=activity.wbs_code,
+                )
             )
-            today_work_list.append(act_summary)
 
-        # Check Upcoming Deadline condition: today <= planned_finish <= today + 7 days AND execution_status != COMPLETED
         seven_days_later = today + timedelta(days=7)
         if (
             activity.planned_finish
             and today <= activity.planned_finish <= seven_days_later
             and exec_status != "COMPLETED"
         ):
-            act_summary = ActivityDashboardSummary(
-                activity_id=activity.id,
-                activity_code=activity.activity_code,
-                activity_name=activity.activity_name,
-                discipline=disc,
-                planned_start=activity.planned_start,
-                planned_finish=activity.planned_finish,
-                actual_start=act_start,
-                actual_finish=act_finish,
-                progress_percentage=prog_pct,
-                execution_status=exec_status,
-                days_until_finish=(activity.planned_finish - today).days,
-                wbs_code=activity.wbs_code,
+            upcoming_deadlines_list.append(
+                ActivityDashboardSummary(
+                    activity_id=activity.id,
+                    activity_code=activity.activity_code,
+                    activity_name=activity.activity_name,
+                    discipline=disc,
+                    planned_start=activity.planned_start,
+                    planned_finish=activity.planned_finish,
+                    actual_start=act_start,
+                    actual_finish=act_finish,
+                    progress_percentage=prog_pct,
+                    execution_status=exec_status,
+                    days_until_finish=(activity.planned_finish - today).days,
+                    wbs_code=activity.wbs_code,
+                )
             )
-            upcoming_deadlines_list.append(act_summary)
 
-    # Sort lists
-    # Overdue: highest overdue days first
     overdue_list.sort(key=lambda x: x.overdue_days or 0, reverse=True)
-    # Today's work: discipline, then activity_code
     today_work_list.sort(key=lambda x: (x.discipline, x.activity_code))
-    # Upcoming deadlines: nearest finish date first
     upcoming_deadlines_list.sort(key=lambda x: x.planned_finish or today)
 
-    # Overall activity-weighted progress
     overall_progress = round(progress_sum / total_activities, 1)
 
     overdue_count = len(overdue_list)
     largest_overdue_days = max([x.overdue_days for x in overdue_list], default=0)
 
-    avg_finish_var = None
-    if finish_variances:
-        avg_finish_var = round(sum(finish_variances) / len(finish_variances), 1)
-
-    avg_start_var = None
-    if start_variances:
-        avg_start_var = round(sum(start_variances) / len(start_variances), 1)
+    avg_finish_var = round(sum(finish_variances) / len(finish_variances), 1) if finish_variances else None
+    avg_start_var = round(sum(start_variances) / len(start_variances), 1) if start_variances else None
 
     summary = DashboardSummary(
         total_activities=total_activities,
@@ -324,7 +318,6 @@ def get_project_dashboard_data(
         average_start_variance_days=avg_start_var,
     )
 
-    # Discipline Progress list
     discipline_progress: List[DisciplineProgressItem] = []
     for disc_name, ddata in discipline_map.items():
         disc_tot = ddata["total_activities"]
@@ -343,12 +336,19 @@ def get_project_dashboard_data(
         )
     discipline_progress.sort(key=lambda x: x.discipline)
 
-    # 3. Recent Site Updates (latest 10)
-    recent_updates_raw = (
+    # 3. Recent Site Updates. Supervisor discipline scope is applied in SQL,
+    # not only filtered after data has already been returned from the backend.
+    recent_updates_query = (
         db.query(ProgressUpdate, Activity, User)
         .join(Activity, ProgressUpdate.activity_id == Activity.id)
         .outerjoin(User, ProgressUpdate.reported_by_id == User.id)
         .filter(ProgressUpdate.project_id == project.id)
+    )
+    if scoped_discipline:
+        recent_updates_query = recent_updates_query.filter(func.upper(Activity.discipline) == scoped_discipline)
+
+    recent_updates_raw = (
+        recent_updates_query
         .order_by(ProgressUpdate.created_at.desc())
         .limit(10)
         .all()
@@ -358,16 +358,8 @@ def get_project_dashboard_data(
     for update_obj, act_obj, user_obj in recent_updates_raw:
         disc = act_obj.discipline.strip() if act_obj.discipline and act_obj.discipline.strip() else "UNASSIGNED"
         reporter_name = user_obj.full_name if user_obj else "System/Unknown"
-        update_type_val = (
-            update_obj.update_type.value
-            if hasattr(update_obj.update_type, "value")
-            else str(update_obj.update_type)
-        )
-        source_type_val = (
-            update_obj.source_type.value
-            if hasattr(update_obj.source_type, "value")
-            else str(update_obj.source_type)
-        )
+        update_type_val = update_obj.update_type.value if hasattr(update_obj.update_type, "value") else str(update_obj.update_type)
+        source_type_val = update_obj.source_type.value if hasattr(update_obj.source_type, "value") else str(update_obj.source_type)
 
         recent_updates.append(
             RecentUpdateItem(
@@ -386,21 +378,13 @@ def get_project_dashboard_data(
             )
         )
 
-    # 4. Supervisor Discipline Summary if assigned
+    # 4. Supervisor summary is now derived from the already-scoped dataset.
     supervisor_summary = None
-    if assigned_discipline:
-        norm_assigned = assigned_discipline.strip().upper()
-        # Find matching discipline item
-        disc_item = next((d for d in discipline_progress if d.discipline.upper() == norm_assigned), None)
-
-        sup_today = [x for x in today_work_list if x.discipline.upper() == norm_assigned]
-        sup_overdue = [x for x in overdue_list if x.discipline.upper() == norm_assigned]
-        sup_upcoming = [x for x in upcoming_deadlines_list if x.discipline.upper() == norm_assigned]
-        sup_recent = [x for x in recent_updates if x.discipline.upper() == norm_assigned]
-
+    if scoped_discipline:
+        disc_item = next((d for d in discipline_progress if d.discipline.upper() == scoped_discipline), None)
         if disc_item:
             supervisor_summary = SupervisorDisciplineSummary(
-                assigned_discipline=norm_assigned,
+                assigned_discipline=scoped_discipline,
                 total_activities=disc_item.total_activities,
                 overall_progress=disc_item.overall_progress,
                 not_started=disc_item.not_started,
@@ -408,14 +392,14 @@ def get_project_dashboard_data(
                 on_hold=disc_item.on_hold,
                 completed=disc_item.completed,
                 overdue=disc_item.overdue,
-                today_work=sup_today,
-                overdue_activities=sup_overdue,
-                upcoming_deadlines=sup_upcoming,
-                recent_updates=sup_recent,
+                today_work=today_work_list,
+                overdue_activities=overdue_list,
+                upcoming_deadlines=upcoming_deadlines_list,
+                recent_updates=recent_updates,
             )
         else:
             supervisor_summary = SupervisorDisciplineSummary(
-                assigned_discipline=norm_assigned,
+                assigned_discipline=scoped_discipline,
                 total_activities=0,
                 overall_progress=0.0,
                 not_started=0,
