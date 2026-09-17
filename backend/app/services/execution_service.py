@@ -66,7 +66,10 @@ def process_progress_update(
     override_reporter: Optional[User] = None,
 ) -> Tuple[ActivityExecution, ProgressUpdate]:
     """
-    Validates and applies an execution progress update in a single transaction.
+    Validates and applies an execution progress update.
+    Normal field updates are committed here. Planner-resolution updates are only
+    flushed so the caller can commit execution, review-case, and source-status
+    changes together as one atomic transaction.
     Protects baseline planned data while updating ActivityExecution and creating a ProgressUpdate audit log.
     """
     project = get_project_or_404(project_id, db)
@@ -233,7 +236,13 @@ def process_progress_update(
     )
     db.add(update_log)
 
-    db.commit()
+    # Planner review application must remain part of the caller's larger transaction.
+    # Flush assigns DB-generated values without making the execution update permanent yet.
+    if allow_planner_resolution:
+        db.flush()
+    else:
+        db.commit()
+
     db.refresh(execution)
     db.refresh(update_log)
 
